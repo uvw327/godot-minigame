@@ -126,8 +126,8 @@ assert.ok(
 );
 assert.ok(!adapterSource.includes("const _dpr = 1;"));
 assert.ok(
-  adapterSource.includes('PlatformRuntime.platform === "tiktok" ? _hostDpr : 1'),
-  "high-DPI backing must remain gated to the TikTok runtime until other hosts are device-certified",
+  adapterSource.includes("Math.min(_hostDpr, MINGAME_MAX_DPR)"),
+  "backing scale must follow the host DPR, capped at MINGAME_MAX_DPR so oversized 3x screens stay performant",
 );
 const projectConfig = read("project.godot");
 // Validate the committed CI/test fixture, never a developer's ignored preset.

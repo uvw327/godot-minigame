@@ -107,7 +107,7 @@ async function testCanvasSeparatesLogicalMetricsFromPhysicalBacking(platform) {
 
   const adapter = globalThis.GameGlobal.__adapter;
   const rect = adapter.canvas.getBoundingClientRect();
-  const expectedDpr = platform === "tiktok" ? 3 : 1;
+  const expectedDpr = 2; // host pixelRatio mock is 3; adapter caps at MINGAME_MAX_DPR (2)
 
   assert.equal(mainCanvas.width, 390 * expectedDpr);
   assert.equal(mainCanvas.height, 844 * expectedDpr);
@@ -146,7 +146,7 @@ async function testResizeKeepsMetricsInTheSameCoordinateSpace(platform) {
   callbacks.resize({ size: { windowWidth: 430, windowHeight: 932 } });
   const adapter = globalThis.GameGlobal.__adapter;
   const rect = adapter.canvas.getBoundingClientRect();
-  const expectedDpr = platform === "tiktok" ? 3 : 1;
+  const expectedDpr = 2; // host pixelRatio mock is 3; adapter caps at MINGAME_MAX_DPR (2)
 
   assert.equal(mainCanvas.width, 430 * expectedDpr);
   assert.equal(mainCanvas.height, 932 * expectedDpr);
@@ -290,7 +290,7 @@ async function testModernWindowInfoAndOptionalTouchCancel(platform) {
   });
   await loadAdapter();
 
-  assert.equal(mainCanvas.width, platform === "tiktok" ? 1170 : 390);
+  assert.equal(mainCanvas.width, 780); // 390 * min(hostDpr 3, MINGAME_MAX_DPR 2) on every platform
   assert.equal(globalThis.GameGlobal.__adapter.window.navigator.platform, "devtools");
 }
 
