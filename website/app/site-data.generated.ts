@@ -51,7 +51,7 @@ export const releaseData = {
     "godotTag": "4.7.2-stable",
     "godotCommit": "ed1daf0bf001b61586d9930840f2f1394092c079",
     "emscriptenVersion": "4.0.11",
-    "profile": "2d_full",
+    "profile": "minigame",
     "target": "release",
     "templateRevision": 3,
     "template": {
@@ -69,7 +69,7 @@ export const releaseData = {
       "godotTag": "4.7.2-stable",
       "godotCommit": "ed1daf0bf001b61586d9930840f2f1394092c079",
       "emscriptenVersion": "4.0.11",
-      "profile": "2d_full",
+      "profile": "minigame",
       "target": "release",
       "templateRevision": 3,
       "template": {
