@@ -42,6 +42,16 @@ validates the result with `scripts/verify_wasm_template.sh`. The output is a
 > hard-fails a bundle that lacks `GodotJSWrapper` or the
 > `godot_js_wrapper_interface_get` import.
 
+Two rules come straight from the 0.4.2 regression:
+
+- Prove the bridge in `godot.js`, never in the minified wasm. `optimize=size`
+  renames wasm imports, so binary symbol assertions reject correct engines.
+- Match the TikTok eval strip on the value side (`:_godot_js_eval`) instead of a
+  fixed `godot_js_eval:_godot_js_eval` key. The import key can be minified to
+  something like `ze`.
+
+Full background and a pre-tag checklist: [Engine bridge contract](ENGINE_BRIDGE.md).
+
 Local prerequisites: `emcc`, `scons`, `brotli`, `jq`, `node`, `wabt`
 (`wasm-validate`), `zip`, `python3`.
 
@@ -147,3 +157,9 @@ Godot Mini Game 锁定一份**精确版本**的小游戏引擎模板：自定义
 `scripts/install_engine_template.sh <bundle.zip>` 安装并同步 `support-matrix.json` 与
 站点数据；④ 按第 4 节清单更新 README/docs/THIRD_PARTY_NOTICES 文案；⑤ 用
 `GODOT_BIN=<godot> ./scripts/test.sh` 回归。
+
+两条来自 0.4.2 回归的硬规则：**桥的证明必须放在 `godot.js`，不能放在压缩后的
+wasm 里**（`optimize=size` 会重命名 import，二进制符号断言会误杀正确产物）；**TikTok
+的 eval 剥离必须匹配值侧 `:_godot_js_eval`**，不能依赖 `godot_js_eval:_godot_js_eval`
+这种会被压缩成 `ze:_godot_js_eval` 的键名。完整背景与打 tag 前检查清单见
+[引擎桥契约](ENGINE_BRIDGE.md)。

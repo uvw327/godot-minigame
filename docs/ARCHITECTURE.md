@@ -100,11 +100,23 @@ Missing manifests, partial bundles, shortened versions, mismatched commits, and
 the standard Godot Web template fail closed. The exporter never generates a
 manifest from untrusted files.
 
+`javascriptEval` is a hard requirement, not a bundle preference. In Godot 4.7 the
+flag also gates `js/libs/library_godot_javascript_singleton.js`, which defines
+`GodotJSWrapper`; disabling it removes the entire JavaScript side of the bridge,
+so `JavaScriptBridge.get_interface()` silently returns `null`. See
+[Engine bridge contract](ENGINE_BRIDGE.md) for the regression that proved this
+and for the defenses that now catch it.
+
 `template.json` 是强制契约，锁定 schema、四段式精确 Godot 版本、40 位源码提交、
 精确 Emscripten 工具链、profile、target、正整数 revision、Bridge ABI、WASM 特性
 （`simd` / `threads` / `wasmExceptions` 必须关闭，`javascriptEval` 必须开启以保证
 `GodotJSWrapper` 与 `JavaScriptBridge` 被链接），以及两个引擎文件的 SHA-256。缺 manifest、缺文件、缩写版本、提交不匹配和官方标准 Web 模板都会直接
 失败；导出器不会再替来源不明的文件自动生成 manifest。
+
+`javascriptEval` 是硬性条件，不是可选的打包偏好。Godot 4.7 中该开关同时控制定义
+`GodotJSWrapper` 的 `js/libs/library_godot_javascript_singleton.js`；关闭它会移除
+桥的整个 JavaScript 侧，`JavaScriptBridge.get_interface()` 会静默返回 `null`。
+相关回归与现行防线见[引擎桥契约](ENGINE_BRIDGE.md)。
 
 ## Multi-version store / 多版本模板库
 

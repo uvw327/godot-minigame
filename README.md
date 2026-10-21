@@ -179,6 +179,7 @@ platform-specific features use explicit provider mappings.
 | Install, configure, and export a game | [Usage guide](docs/USAGE.md) |
 | Find an SDK method or signal | [Searchable API reference](https://anrans.github.io/godot_for_minigame/api/) |
 | Understand transactions and versioning | [Architecture and versioning](docs/ARCHITECTURE.md) |
+| Debug a missing bridge or engine regression | [Engine bridge contract](docs/ENGINE_BRIDGE.md) |
 | Build or import another engine pack | [Custom template guide](docs/USAGE.md#12-building-a-custom-engine-template) |
 | Publish a new plugin version | [Release process](docs/RELEASING.md) |
 | Report a problem or request a feature | [GitHub Issues](https://github.com/AnranS/godot_for_minigame/issues) |

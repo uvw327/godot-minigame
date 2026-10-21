@@ -81,7 +81,28 @@ The verifier accepts a ZIP or directory containing exactly `template.json`,
 Commit the complete release source, push `main`, and wait for **Smoke Test
 Export** and **Deploy Website to GitHub Pages** to succeed.
 
-## 3. Create the immutable tag
+## 3. Land engine changes before the tag
+
+A `v*` tag only packages the engine that is already committed; it never rebuilds
+the template. If anything under `addons/godot_mini_game/engine/` changed:
+
+1. push the change to an `engine/**` branch;
+2. wait for **Build Mini-Game WASM Template** to finish and its
+   `sync-engine-files` job to commit the certified bundle back;
+3. merge that commit into `main` and let **Smoke Test Export** pass;
+4. only then create the tag.
+
+Never tag a revision whose engine bundle has not been rebuilt and verified. A tag
+created too early publishes the previous bundle under the new version number. The
+downloaded bundle is a temporary build input and must not be committed; CI deletes
+`engine-bundle/` before write-back.
+
+引擎有变更时，`v*` tag 只打包仓库里现有的引擎，不会重建模板。因此必须先推到
+`engine/**` 分支触发构建，等回写 job 提交认证 bundle，合入 `main` 并让
+**Smoke Test Export** 通过，最后才创建 tag。提前打 tag 会把旧引擎套上新版本号。
+下载的 bundle 只是临时构建输入，不得提交；CI 在回写前会删除 `engine-bundle/`。
+
+## 4. Create the immutable tag
 
 With a clean working tree on the tested `main` commit, run:
 
@@ -99,7 +120,7 @@ verifies the ZIP and checksum, refuses an existing Release, and publishes:
 - `godot_mini_game_vX.Y.Z.zip`
 - `godot_mini_game_vX.Y.Z.zip.sha256`
 
-## 4. Verify the published result
+## 5. Verify the published result
 
 Confirm that the Release is neither a draft nor prerelease, both assets exist,
 and the uploaded ZIP digest matches the local reproducible package. Finally,

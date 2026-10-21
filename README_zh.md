@@ -168,6 +168,7 @@ API 页面展示的是完整 Bridge 接口面，不代表每个宿主都兼容�
 | 安装、配置并导出游戏 | [中文使用指南](docs/USAGE_zh.md) |
 | 查找 SDK 方法或信号 | [可搜索 API 文档](https://anrans.github.io/godot_for_minigame/api/) |
 | 理解导出事务与版本策略 | [架构与版本管理](docs/ARCHITECTURE.md) |
+| 排查桥缺失或引擎回归 | [引擎桥契约](docs/ENGINE_BRIDGE.md) |
 | 构建或导入其它引擎模板 | [自定义模板指南](docs/USAGE_zh.md#12-编译自定义引擎模板) |
 | 发布新的插件版本 | [发布流程](docs/RELEASING.md) |
 | 报告问题或提出功能建议 | [GitHub Issues](https://github.com/AnranS/godot_for_minigame/issues) |
