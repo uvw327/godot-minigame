@@ -83,3 +83,18 @@
 | 基于 mod.2 重新裁剪 | `engine/minigame` | `v4.7.2-stable.mod.2-engine.minigame.1` |
 | Godot 升级到 4.8.0-stable，mod 首次稳定 | `mod` | `v4.8.0-stable.mod.1` |
 | 基于新基线裁剪 | `engine/minigame` | `v4.8.0-stable.mod.1-engine.minigame.1` |
+
+---
+
+## 5. 规范的落地方式
+
+| 脚本 / 工作流 | 职责 |
+| :--- | :--- |
+| `scripts/validate_release_tag.sh` | 校验 tag 格式、`<GodotTag>` 与内置认证引擎是否一致、`plugin.cfg` 与 `support-matrix.json` 的插件版本是否一致，并输出 tag 的各字段 |
+| `scripts/release_plugin.sh` | 按本规范创建并推送不可变 tag，校验迭代序号，打包可复现的安装 zip |
+| `scripts/package_plugin.sh` | 打包插件；接受可选归档名参数，使发布物按 tag 命名 |
+| `.github/workflows/release-plugin.yml` | 由 `v*` tag 触发，复用冒烟测试后发布 GitHub Release，发布物以 tag 命名 |
+
+校验一律 fail-closed：tag 格式不合法、`<GodotTag>` 与内置引擎不符、迭代序号不连续、
+引擎裁剪的基线 mod tag 不存在、或同名 Release 已存在，发布都会中止。
+

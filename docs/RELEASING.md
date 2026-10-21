@@ -6,10 +6,23 @@ it is allowed to publish GitHub Release assets.
 
 ## 1. Choose and apply the version
 
-Use a new semantic version. Never move or reuse an existing tag, including a
-tag whose workflow failed.
+Releases are tagged with the scheme defined in
+[SLIM_GODOT_ENGINE.md](SLIM_GODOT_ENGINE.md):
 
-Update the version in all release-facing sources:
+- `v<GodotTag>.mod.<N>` — a plugin release, for example
+  `v4.7.2-stable.mod.1`
+- `v<GodotTag>.mod.<N>-engine.<name>.<M>` — an engine cut, for example
+  `v4.7.2-stable.mod.1-engine.minigame.1`
+
+`<GodotTag>` is the official Godot tag the release targets and must match the
+Godot version the bundled certified engine actually ships. The mod iteration
+`<N>` starts at 1 and increments on every release; it resets to 1 when the
+Godot version changes. The plugin version is a separate axis: it lives in
+`plugin.cfg` and is reported as `pluginVersion` in the release notes.
+
+Never move or reuse an existing tag, including a tag whose workflow failed.
+
+Update the plugin version in all release-facing sources:
 
 - `addons/godot_mini_game/plugin.cfg`
 - `support-matrix.json`
@@ -78,7 +91,7 @@ locally or by **Build Mini-Game WASM Template**:
 The verifier accepts a ZIP or directory containing exactly `template.json`,
 `version.txt`, `godot.js`, `godot.wasm.br`, and `GODOT_COPYRIGHT.txt`.
 
-Commit the complete release source, push `main`, and wait for **Smoke Test
+Commit the complete release source, push `mod`, and wait for **Smoke Test
 Export** to succeed.
 
 ## 3. Land engine changes before the tag
@@ -89,7 +102,7 @@ the template. If anything under `addons/godot_mini_game/engine/` changed:
 1. push the change to an `engine/**` branch;
 2. wait for **Build Mini-Game WASM Template** to finish and its
    `sync-engine-files` job to commit the certified bundle back;
-3. merge that commit into `main` and let **Smoke Test Export** pass;
+3. merge that commit into `mod` and let **Smoke Test Export** pass;
 4. only then create the tag.
 
 Never tag a revision whose engine bundle has not been rebuilt and verified. A tag
@@ -98,27 +111,29 @@ downloaded bundle is a temporary build input and must not be committed; CI delet
 `engine-bundle/` before write-back.
 
 引擎有变更时，`v*` tag 只打包仓库里现有的引擎，不会重建模板。因此必须先推到
-`engine/**` 分支触发构建，等回写 job 提交认证 bundle，合入 `main` 并让
+`engine/**` 分支触发构建，等回写 job 提交认证 bundle，合入 `mod` 并让
 **Smoke Test Export** 通过，最后才创建 tag。提前打 tag 会把旧引擎套上新版本号。
 下载的 bundle 只是临时构建输入，不得提交；CI 在回写前会删除 `engine-bundle/`。
 
 ## 4. Create the immutable tag
 
-With a clean working tree on the tested `main` commit, run:
+With a clean working tree on the tested `mod` commit, run:
 
 ```bash
-./scripts/release_plugin.sh X.Y.Z
+./scripts/release_plugin.sh v4.7.2-stable.mod.1
 ```
 
-The script verifies version agreement, rebuilds the reproducible install ZIP,
-refuses existing local or remote tags, and pushes `vX.Y.Z`. It does not upload
-assets itself.
+The script validates the tag shape, the Godot version the bundled engine
+ships, the plugin version agreement between `plugin.cfg` and
+`support-matrix.json`, and the iteration sequence. It then rebuilds the
+reproducible install ZIP, refuses existing local or remote tags, and pushes
+the tag. It does not upload assets itself.
 
 The tag-triggered **Release Plugin** workflow reruns the full export matrix,
 verifies the ZIP and checksum, refuses an existing Release, and publishes:
 
-- `godot_mini_game_vX.Y.Z.zip`
-- `godot_mini_game_vX.Y.Z.zip.sha256`
+- `godot_mini_game_v4.7.2-stable.mod.1.zip`
+- `godot_mini_game_v4.7.2-stable.mod.1.zip.sha256`
 
 ## 5. Verify the published result
 
@@ -127,5 +142,5 @@ and the uploaded ZIP digest matches the local reproducible package. Finally,
 open the public homepage and API reference to verify that they point to the new
 release.
 
-If a tag workflow fails before creating a Release, fix the cause on `main` and
-publish a new patch version. Do not delete or retarget the failed tag.
+If a tag workflow fails before creating a Release, fix the cause on `mod` and
+publish a new mod iteration. Do not delete or retarget the failed tag.

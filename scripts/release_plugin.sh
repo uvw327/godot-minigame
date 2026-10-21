@@ -1,30 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Create a GitHub Release and upload the installable Godot plugin zip.
+# Create the immutable release tag for the Godot Mini Game plugin.
 #
 # Usage:
-#   scripts/release_plugin.sh 0.3.0
-#   scripts/release_plugin.sh 0.3.0 --no-push
+#   scripts/release_plugin.sh v4.7.2-stable.mod.1
+#   scripts/release_plugin.sh v4.7.2-stable.mod.1 --no-push
+#
+# The tag scheme is defined in docs/SLIM_GODOT_ENGINE.md:
+#   v<GodotTag>.mod.<N>
+#   v<GodotTag>.mod.<N>-engine.<name>.<M>
 #
 # Requirements:
-#   - plugin.cfg version already updated and committed
+#   - the tag targets the Godot version the bundled certified engine ships
+#   - plugin.cfg and support-matrix.json agree on the plugin version
+#   - the working tree is clean and carries the exact release contents
 
 usage() {
     cat <<'EOF'
-Usage: scripts/release_plugin.sh <version> [--no-push]
+Usage: scripts/release_plugin.sh <tag> [--no-push]
 
 Examples:
-  scripts/release_plugin.sh 0.3.0
-  scripts/release_plugin.sh v0.3.0 --no-push
+  scripts/release_plugin.sh v4.7.2-stable.mod.1
+  scripts/release_plugin.sh v4.7.2-stable.mod.1-engine.minigame.1
+  scripts/release_plugin.sh v4.7.2-stable.mod.1 --no-push
 
-The script verifies the package, creates a new immutable git tag vX.Y.Z, and
-pushes it. The tag-driven GitHub Actions workflow is the only release publisher.
+The script validates the tag, rebuilds the reproducible install ZIP, refuses
+existing local or remote tags, and pushes the tag. The tag-driven GitHub
+Actions workflow is the only release publisher.
 EOF
 }
 
 if [ "$#" -lt 1 ]; then
-    usage
+    usage >&2
     exit 1
 fi
 
@@ -33,7 +41,7 @@ if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     exit 0
 fi
 
-VERSION="${1#v}"
+TAG="$1"
 shift
 
 NO_PUSH=false
@@ -47,23 +55,20 @@ while [ "$#" -gt 0 ]; do
             ;;
         *)
             echo "Unknown option: $1" >&2
-            usage
+            usage >&2
             exit 1
             ;;
     esac
     shift
 done
 
-if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-    echo "Invalid version: $VERSION" >&2
-    echo "Expected something like 0.3.0 or v0.3.0" >&2
-    exit 1
-fi
+case "$TAG" in
+    v*) ;;
+    *) TAG="v${TAG}" ;;
+esac
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-TAG="v${VERSION}"
-ZIP_PATH="${PROJECT_DIR}/dist/godot_mini_game_v${VERSION}.zip"
 PLUGIN_CFG="${PROJECT_DIR}/addons/godot_mini_game/plugin.cfg"
 SUPPORT_MATRIX="${PROJECT_DIR}/support-matrix.json"
 
@@ -85,23 +90,14 @@ if [ ! -s "$SUPPORT_MATRIX" ]; then
     exit 1
 fi
 
-CFG_VERSION="$(grep 'version=' "$PLUGIN_CFG" | head -1 | cut -d'"' -f2)"
-if [ "$CFG_VERSION" != "$VERSION" ]; then
-    echo "Version mismatch:" >&2
-    echo "  requested:  $VERSION" >&2
-    echo "  plugin.cfg: $CFG_VERSION" >&2
-    echo "Update addons/godot_mini_game/plugin.cfg before releasing." >&2
-    exit 1
-fi
-
-MATRIX_VERSION="$(jq -er '.pluginVersion | select(type == "string" and length > 0)' "$SUPPORT_MATRIX")"
-if [ "$MATRIX_VERSION" != "$VERSION" ]; then
-    echo "Version mismatch:" >&2
-    echo "  requested:           $VERSION" >&2
-    echo "  support-matrix.json: $MATRIX_VERSION" >&2
-    echo "Update support-matrix.json before releasing." >&2
-    exit 1
-fi
+# Validate the tag shape and the release identities it claims.
+TAG_FACTS="$("${SCRIPT_DIR}/validate_release_tag.sh" "$TAG")" || exit 1
+GODOT_TAG="$(printf '%s\n' "$TAG_FACTS" | sed -n 's/^godot_tag=//p')"
+ITERATION="$(printf '%s\n' "$TAG_FACTS" | sed -n 's/^iteration=//p')"
+ENGINE_NAME="$(printf '%s\n' "$TAG_FACTS" | sed -n 's/^engine_name=//p')"
+ENGINE_ITERATION="$(printf '%s\n' "$TAG_FACTS" | sed -n 's/^engine_iteration=//p')"
+PACKAGE_NAME="$(printf '%s\n' "$TAG_FACTS" | sed -n 's/^package_name=//p')"
+ZIP_PATH="${PROJECT_DIR}/dist/${PACKAGE_NAME}.zip"
 
 if [ -n "$(git status --porcelain)" ]; then
     echo "Working tree is not clean. Commit the exact release contents first." >&2
@@ -109,7 +105,61 @@ if [ -n "$(git status --porcelain)" ]; then
     exit 1
 fi
 
-"${SCRIPT_DIR}/package_plugin.sh"
+# The iteration must be the next one for this Godot tag, and an engine release
+# must sit on an existing mod tag. Both rules come from
+# docs/SLIM_GODOT_ENGINE.md.
+if ! REMOTE_TAGS="$(git ls-remote --tags origin "refs/tags/v${GODOT_TAG}.mod.*" 2>/dev/null)"; then
+    echo "Unable to list remote tags; refusing to publish." >&2
+    exit 1
+fi
+
+highest_mod_iteration=0
+highest_engine_iteration=0
+while read -r _ref name; do
+    [ -n "${name:-}" ] || continue
+    name="${name%\^\{\}}"
+    if [[ "$name" =~ ^v${GODOT_TAG}\.mod\.([0-9]+)$ ]]; then
+        candidate="${BASH_REMATCH[1]}"
+        if [ "$candidate" -gt "$highest_mod_iteration" ]; then
+            highest_mod_iteration="$candidate"
+        fi
+    fi
+    if [ -n "$ENGINE_NAME" ] && [[ "$name" =~ ^v${GODOT_TAG}\.mod\.${ITERATION}-engine\.${ENGINE_NAME}\.([0-9]+)$ ]]; then
+        candidate="${BASH_REMATCH[1]}"
+        if [ "$candidate" -gt "$highest_engine_iteration" ]; then
+            highest_engine_iteration="$candidate"
+        fi
+    fi
+done <<<"$REMOTE_TAGS"
+
+expected_iteration=$((highest_mod_iteration + 1))
+if [ "$ITERATION" != "$expected_iteration" ]; then
+    echo "Iteration mismatch for Godot ${GODOT_TAG}:" >&2
+    echo "  tag:      $TAG" >&2
+    echo "  expected: mod.${expected_iteration}" >&2
+    echo "  existing: mod.${highest_mod_iteration}" >&2
+    echo "The mod iteration increments on every release and resets on a Godot upgrade." >&2
+    exit 1
+fi
+
+if [ -n "$ENGINE_NAME" ]; then
+    if ! git ls-remote --exit-code --tags origin "refs/tags/v${GODOT_TAG}.mod.${ITERATION}" >/dev/null 2>&1; then
+        echo "Base mod tag v${GODOT_TAG}.mod.${ITERATION} does not exist on origin." >&2
+        echo "An engine release must build on an already published mod tag." >&2
+        exit 1
+    fi
+    expected_engine_iteration=$((highest_engine_iteration + 1))
+    if [ "$ENGINE_ITERATION" != "$expected_engine_iteration" ]; then
+        echo "Engine iteration mismatch for ${ENGINE_NAME}:" >&2
+        echo "  tag:      $TAG" >&2
+        echo "  expected: -engine.${ENGINE_NAME}.${expected_engine_iteration}" >&2
+        echo "  existing: -engine.${ENGINE_NAME}.${highest_engine_iteration}" >&2
+        echo "The engine iteration increments on every cut and resets on a new mod baseline." >&2
+        exit 1
+    fi
+fi
+
+"${SCRIPT_DIR}/package_plugin.sh" "$PACKAGE_NAME"
 
 if [ ! -f "$ZIP_PATH" ]; then
     echo "Package was not created: $ZIP_PATH" >&2

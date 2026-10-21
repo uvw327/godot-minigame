@@ -18,18 +18,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate release version
+      - name: Validate release tag
         id: version
         run: |
           set -euo pipefail
-          version=$(grep 'version=' addons/godot_mini_game/plugin.cfg | head -1 | cut -d'"' -f2)
-          tag_version="${GITHUB_REF_NAME#v}"
-          matrix_version=$(jq -r '.pluginVersion' support-matrix.json)
-          if [ "$tag_version" != "$version" ] || [ "$version" != "$matrix_version" ]; then
-            echo "Tag, plugin.cfg, and support-matrix.json versions must match" >&2
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          facts="$(scripts/validate_release_tag.sh "$GITHUB_REF_NAME")"
+          echo "$facts"
+          while IFS='=' read -r key value; do
+            [ -n "$key" ] || continue
+            echo "$key=$value" >> "$GITHUB_OUTPUT"
+          done <<<"$facts"
 
       - name: Refuse an existing release
         env:
@@ -47,12 +45,12 @@ jobs:
           fi
 
       - name: Package plugin
-        run: scripts/package_plugin.sh
+        run: scripts/package_plugin.sh "${{ steps.version.outputs.package_name }}"
 
       - name: Verify install archive
         run: |
           set -euo pipefail
-          archive="dist/godot_mini_game_v${{ steps.version.outputs.version }}.zip"
+          archive="dist/${{ steps.version.outputs.package_name }}.zip"
           unzip -t "$archive"
           unzip -l "$archive" | grep 'addons/godot_mini_game/LICENSE'
           unzip -l "$archive" | grep 'addons/godot_mini_game/GODOT_COPYRIGHT.txt'
@@ -66,17 +64,21 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          name: "v${{ steps.version.outputs.version }}"
+          name: "${{ steps.version.outputs.tag }}"
           body: |
-            ## Godot Mini Game Plugin v${{ steps.version.outputs.version }}
+            ## Godot Mini Game Plugin ${{ steps.version.outputs.tag }}
 
+            - Godot target: `${{ steps.version.outputs.godot_tag }}`
+            - Plugin version: `${{ steps.version.outputs.plugin_version }}`
+            - Mod iteration: `${{ steps.version.outputs.iteration }}`
+            ${{ steps.version.outputs.engine_name && format('- Engine cut: `{0}` (iteration {1})', steps.version.outputs.engine_name, steps.version.outputs.engine_iteration) || '' }}
             - Transactional mini-game export with version-locked engine templates.
             - WeChat, Douyin, and TikTok platform runtimes with a shared bridge ABI.
             - Bundled certified engine template for the exact version listed in `support-matrix.json`.
 
             Download the installable ZIP below and extract it into the root of a Godot project.
           files: |
-            dist/godot_mini_game_v${{ steps.version.outputs.version }}.zip
-            dist/godot_mini_game_v${{ steps.version.outputs.version }}.zip.sha256
+            dist/${{ steps.version.outputs.package_name }}.zip
+            dist/${{ steps.version.outputs.package_name }}.zip.sha256
           draft: false
           prerelease: false

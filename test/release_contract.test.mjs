@@ -249,7 +249,38 @@ assert.ok(!releaseScript.includes("--clobber"), "published release assets must b
 assert.ok(!releaseScript.includes("gh release upload"), "the tag workflow must be the only release publisher");
 assert.ok(releaseScript.includes('git rev-parse --verify "refs/tags/$TAG"'));
 assert.ok(releaseScript.includes("git ls-remote --tags origin"));
-assert.ok(releaseScript.includes(".pluginVersion"), "release script must validate support-matrix.json before tagging");
+assert.ok(
+  releaseScript.includes("validate_release_tag.sh"),
+  "release script must validate the tag against the documented version scheme",
+);
+
+const releaseTagScript = read("scripts/validate_release_tag.sh");
+assert.ok(
+  releaseTagScript.includes(".pluginVersion"),
+  "release tag validation must check support-matrix.json",
+);
+assert.ok(
+  releaseTagScript.includes("godotTag"),
+  "release tags must be checked against the certified Godot tag",
+);
+assert.ok(
+  releaseTagScript.includes("\\.mod\\."),
+  "release tags must use the v<GodotTag>.mod.<N> scheme",
+);
+assert.ok(
+  releaseTagScript.includes("-engine\\."),
+  "engine release tags must use the -engine.<name>.<M> scheme",
+);
+
+const versionScheme = read("docs/SLIM_GODOT_ENGINE.md");
+assert.ok(
+  versionScheme.includes("v<GodotTag>.mod.<N>"),
+  "the version scheme doc must document the mod release tag format",
+);
+assert.ok(
+  versionScheme.includes("v<GodotTag>.mod.<N>-engine.<name>.<M>"),
+  "the version scheme doc must document the engine release tag format",
+);
 
 const templateBuildScript = read("scripts/build_wasm_template.sh");
 assert.ok(
@@ -272,6 +303,14 @@ assert.ok(releaseWorkflow.includes("GODOT_COPYRIGHT.txt"));
 assert.ok(releaseWorkflow.includes("sha256sum -c"), "release CI must verify its published checksum");
 assert.ok(releaseWorkflow.includes("gh api"));
 assert.ok(releaseWorkflow.includes("HTTP 404"), "release existence checks must fail closed on network/auth errors");
+assert.ok(
+  releaseWorkflow.includes("validate_release_tag.sh"),
+  "release CI must validate the tag against the documented version scheme",
+);
+assert.ok(
+  releaseWorkflow.includes("steps.version.outputs.package_name"),
+  "release CI must publish the archive under the release tag",
+);
 
 const packageScript = read("scripts/package_plugin.sh");
 assert.ok(packageScript.includes("THIRD_PARTY_NOTICES.md"));
@@ -279,6 +318,10 @@ assert.ok(packageScript.includes("LICENSE"));
 assert.ok(packageScript.includes("GODOT_COPYRIGHT.txt"));
 assert.ok(packageScript.includes("touch -t 198001010000"));
 assert.ok(packageScript.includes('OUTPUT_BASENAME="$(basename "$OUTPUT_ZIP")"'));
+assert.ok(
+  packageScript.includes("godot_mini_game_v${VERSION}"),
+  "the default archive name must follow the plugin version",
+);
 assert.ok(
   !packageScript.includes('shasum -a 256 "$OUTPUT_ZIP"'),
   "published checksum files must not expose an absolute build path",

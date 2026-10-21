@@ -4,6 +4,13 @@ set -euo pipefail
 # Package the plugin into a distributable zip for Godot users.
 # Output: godot_mini_game_v{VERSION}.zip
 #
+# Usage:
+#   scripts/package_plugin.sh
+#   scripts/package_plugin.sh godot_mini_game_v4.7.2-stable.mod.1
+#
+# The optional argument overrides the archive base name, so a release can be
+# published under its own tag instead of the shared plugin version.
+#
 # The zip preserves the addons/ directory structure so users can
 # extract it directly into their Godot project root.
 
@@ -18,7 +25,12 @@ if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
     exit 1
 fi
 
-OUTPUT_NAME="godot_mini_game_v${VERSION}"
+OUTPUT_NAME="${1:-godot_mini_game_v${VERSION}}"
+if ! [[ "$OUTPUT_NAME" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]*$ ]]; then
+    echo "Invalid output name: ${OUTPUT_NAME}" >&2
+    echo "Expected a plain file base name such as godot_mini_game_v4.7.2-stable.mod.1" >&2
+    exit 1
+fi
 OUTPUT_ZIP="${PROJECT_DIR}/dist/${OUTPUT_NAME}.zip"
 TEMP_DIR=$(mktemp -d)
 trap 'rm -rf "${TEMP_DIR}"' EXIT
