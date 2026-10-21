@@ -79,7 +79,7 @@ The verifier accepts a ZIP or directory containing exactly `template.json`,
 `version.txt`, `godot.js`, `godot.wasm.br`, and `GODOT_COPYRIGHT.txt`.
 
 Commit the complete release source, push `main`, and wait for **Smoke Test
-Export** and **Deploy Website to GitHub Pages** to succeed.
+Export** to succeed.
 
 ## 3. Land engine changes before the tag
 

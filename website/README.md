@@ -27,7 +27,7 @@ npm run dev
 npm run build
 ```
 
-The static GitHub Pages output is generated in `dist/client`.
+The static build output is generated in `dist/client`.
 
 `npm run generate:data` regenerates both the release/platform data and the API
 index. The API index is the full `MiniGameSDK` bridge surface, not a claim that

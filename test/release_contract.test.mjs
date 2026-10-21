@@ -244,17 +244,6 @@ assert.ok(
   "changes to any release workflow must exercise the smoke suite",
 );
 
-const deployWorkflow = read(".github/workflows/deploy-pages.yml");
-assert.ok(deployWorkflow.includes("pull_request:"), "website changes must be tested on pull requests");
-assert.ok(deployWorkflow.includes('"addons/godot_mini_game/MiniGameSDK.gd"'));
-assert.ok(deployWorkflow.includes('"addons/godot_mini_game/plugin.cfg"'));
-assert.ok(deployWorkflow.includes('"support-matrix.json"'));
-assert.ok(deployWorkflow.includes("run: npm test"), "rendered website assertions must gate deployment");
-assert.ok(
-  deployWorkflow.includes("if: github.event_name != 'pull_request'"),
-  "pull requests may validate but must not deploy Pages",
-);
-
 const releaseScript = read("scripts/release_plugin.sh");
 assert.ok(!releaseScript.includes("--clobber"), "published release assets must be immutable");
 assert.ok(!releaseScript.includes("gh release upload"), "the tag workflow must be the only release publisher");
