@@ -118,11 +118,17 @@ fi
 
 # The engine MUST carry the JavaScriptBridge implementation. In Godot 4.7 a
 # build made with `javascript_eval=no` silently drops
-# `js/libs/library_godot_javascript_singleton.js`, so `GodotJSWrapper` and its
-# `godot_js_wrapper_*` wasm imports disappear and
-# `JavaScriptBridge.get_interface()` can never find a registered interface.
+# `js/libs/library_godot_javascript_singleton.js`, so `GodotJSWrapper` and the
+# `godot_js_wrapper_*` helpers disappear and `JavaScriptBridge.get_interface()`
+# can never find a registered interface.
 if ! grep -q "GodotJSWrapper" "${PACKAGE_DIR}/godot.js"; then
     echo "::error::godot.js is missing GodotJSWrapper; rebuild the template with javascript_eval=yes" >&2
+    exit 1
+fi
+# Check the JS side. With optimize=size Emscripten may minify wasm import names,
+# so the stable proof that the bridge is linked lives in godot.js, not wasm.
+if ! grep -q "godot_js_wrapper_interface_get" "${PACKAGE_DIR}/godot.js"; then
+    echo "::error::godot.js has no godot_js_wrapper_interface_get; JavaScriptBridge is not linked" >&2
     exit 1
 fi
 # The eval implementation is injected by Emscripten only when the engine carries
@@ -136,11 +142,7 @@ fi
 
 brotli --decompress --force --output="${TEMP_DIR}/godot.wasm" "${PACKAGE_DIR}/godot.wasm.br"
 if [ "$(xxd -p -l 4 "${TEMP_DIR}/godot.wasm")" != "0061736d" ]; then
-    echo "Decompressed artifact is not a WebAssembly module" >&2
-    exit 1
-fi
-if ! grep -aq "godot_js_wrapper_interface_get" "${TEMP_DIR}/godot.wasm"; then
-    echo "::error::godot.wasm has no godot_js_wrapper_interface_get import; JavaScriptBridge is not linked" >&2
+    echo "::error::decompressed artifact is not a WebAssembly module" >&2
     exit 1
 fi
 # WABT disables threads and exception handling by default. Explicitly disable
