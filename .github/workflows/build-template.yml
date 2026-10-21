@@ -36,6 +36,14 @@ on:
   push:
     branches:
       - "engine/**"
+    # The write-back job commits the certified engine back to the branch.
+    # Those files must not trigger another rebuild of the same engine.
+    paths-ignore:
+      - "addons/godot_mini_game/engine/**"
+      - "support-matrix.json"
+      - "website/app/site-data.generated.ts"
+      - "README.md"
+      - "README_zh.md"
 
 jobs:
   build:

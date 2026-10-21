@@ -208,9 +208,13 @@ fi
 # eval strip), instead of shipping a template that cannot be exported.
 node "${SCRIPT_DIR}/locate_godot_js_anchors.mjs" "$JS_FILE"
 
+if [ ! -s "${SOURCE_DIR}/COPYRIGHT.txt" ]; then
+    echo "Godot source is missing COPYRIGHT.txt: ${SOURCE_DIR}/COPYRIGHT.txt" >&2
+    exit 1
+fi
 PACKAGE_DIR="$(mktemp -d "${BUILD_ROOT}/template-package.XXXXXX")"
 cp "$JS_FILE" "${PACKAGE_DIR}/godot.js"
-cp "$SOURCE_DIR}/COPYRIGHT.txt" "${PACKAGE_DIR}/GODOT_COPYRIGHT.txt"
+cp "${SOURCE_DIR}/COPYRIGHT.txt" "${PACKAGE_DIR}/GODOT_COPYRIGHT.txt"
 brotli --quality=11 --force --output="${PACKAGE_DIR}/godot.wasm.br" "$WASM_FILE"
 printf '%s\n' "$CANONICAL_VERSION" > "${PACKAGE_DIR}/version.txt"
 
