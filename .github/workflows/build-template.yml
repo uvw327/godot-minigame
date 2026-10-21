@@ -325,6 +325,7 @@ jobs:
           bundle="$(find engine-bundle -name '*.zip' -print -quit)"
           test -n "$bundle"
           bash scripts/install_engine_template.sh "$bundle"
+          rm -rf engine-bundle
 
       - name: Keep README template revision in lockstep
         run: |

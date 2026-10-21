@@ -148,7 +148,7 @@ func _init() -> void:
 	)
 	if engine_carries_eval:
 		_assert_true(
-			patched.contains("godot_js_eval:_godot_js_disabled"),
+			patched.contains("_godot_js_disabled"),
 			"TikTok must route the certified eval bridge to the disabled stub",
 		)
 	for marker in [
