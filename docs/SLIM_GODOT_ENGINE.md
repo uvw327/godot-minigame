@@ -115,6 +115,7 @@
 | 脚本 / 工作流 | 职责 |
 | :--- | :--- |
 | `scripts/validate_release_tag.sh` | 校验 tag 格式、`<GodotTag>` 与内置认证引擎是否一致、`plugin.cfg` 与 `support-matrix.json` 的插件版本是否一致，并输出 tag 的各字段 |
+| `scripts/check_release_iteration.sh` | 用远端 tag 列表校验迭代序号：mod 序号必须递增、引擎 tag 的基线 mod tag 必须已存在且 `<M>` 递增；解析不出一律中止 |
 | `scripts/release_plugin.sh` | 按本规范创建并推送不可变 tag，校验迭代序号，打包可复现的安装 zip |
 | `scripts/package_plugin.sh` | 打包插件；接受可选归档名参数，使发布物按 tag 命名 |
 | `scripts/build_wasm_template.sh` | 按 profile 编译并打包引擎模板；本地与 CI 共用同一份实现 |

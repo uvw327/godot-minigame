@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -341,25 +342,77 @@ assert.ok(!releaseScript.includes("--clobber"), "published release assets must b
 assert.ok(!releaseScript.includes("gh release upload"), "the tag workflow must be the only release publisher");
 assert.ok(releaseScript.includes('git rev-parse --verify "refs/tags/$TAG"'));
 assert.ok(releaseScript.includes("git ls-remote --tags origin"));
-// An engine tag names an already published mod tag in its `<N>` slot, so the
-// "next mod iteration" rule must only apply to plain mod releases.
+assert.ok(
+  releaseScript.includes("check_release_iteration.sh"),
+  "the release script must delegate the iteration sequence check",
+);
+// The iteration sequence rules are exercised against real `git ls-remote`
+// output shapes: a parser that quietly matches nothing would let the first
+// release look valid forever, while every later one claims to be the first.
+const iterationScript = path.join(projectRoot, "scripts", "check_release_iteration.sh");
+const remoteListing = (refs) =>
+  refs.map((ref) => `0123456789abcdef0123456789abcdef01234567\trefs/tags/${ref}\n`).join("");
+const runIterationCheck = (tag, refs) => {
+  const result = spawnSync("bash", [iterationScript, tag], {
+    cwd: projectRoot,
+    input: remoteListing(refs),
+    encoding: "utf8",
+  });
+  assert.equal(result.error, undefined, `unable to run the iteration check: ${result.error}`);
+  return result;
+};
+
 {
-  const engineBranchStart = releaseScript.indexOf('if [ -n "$ENGINE_NAME" ]; then');
-  const modIterationCheck = releaseScript.indexOf("expected_iteration=$((highest_mod_iteration + 1))");
-  const engineIterationCheck = releaseScript.indexOf("expected_engine_iteration=$((highest_engine_iteration + 1))");
-  assert.ok(engineBranchStart >= 0, "the release script must special-case engine tags");
-  assert.ok(
-    engineIterationCheck > engineBranchStart,
-    "an engine release must still require the next engine cut",
-  );
-  assert.ok(
-    modIterationCheck > engineIterationCheck,
-    "the next-mod-iteration rule must sit in the mod-only branch, after the engine branch",
-  );
-  assert.ok(
-    releaseScript.includes('if ! git ls-remote --exit-code --tags origin "refs/tags/v${GODOT_TAG}.mod.${ITERATION}"'),
-    "an engine release must verify its base mod tag exists",
-  );
+  // An annotated tag listing carries both the tag ref and its peeled `^{}`
+  // entry; both must survive parsing, and `refs/tags/` must be stripped.
+  const existing = ["v4.7.2-stable.mod.1", "v4.7.2-stable.mod.1^{}"];
+
+  const nextMod = runIterationCheck("v4.7.2-stable.mod.2", existing);
+  assert.equal(nextMod.status, 0, nextMod.stderr);
+  assert.match(nextMod.stdout, /iteration_ok/);
+
+  const skippedMod = runIterationCheck("v4.7.2-stable.mod.3", existing);
+  assert.equal(skippedMod.status, 1, "a mod release must not skip an iteration");
+  assert.match(skippedMod.stderr, /expected: mod\.2/);
+
+  const reusedMod = runIterationCheck("v4.7.2-stable.mod.1", existing);
+  assert.equal(reusedMod.status, 1, "a mod release must not reuse an iteration");
+  assert.match(reusedMod.stderr, /expected: mod\.2/);
+
+  // A namespace that holds tags but no readable baseline must fail closed
+  // instead of being mistaken for a first release.
+  const unreadable = runIterationCheck("v4.7.2-stable.mod.2", [
+    "v4.7.2-stable.mod.1-engine.minigame.1",
+  ]);
+  assert.equal(unreadable.status, 1, "an unreadable tag namespace must abort the release");
+  assert.match(unreadable.stderr, /readable mod baseline/);
+}
+
+{
+  // An engine tag names an already published mod tag in its `<N>` slot, so the
+  // "next mod iteration" rule must only apply to plain mod releases.
+  const base = ["v4.7.2-stable.mod.1"];
+
+  const firstCut = runIterationCheck("v4.7.2-stable.mod.1-engine.minigame.1", base);
+  assert.equal(firstCut.status, 0, firstCut.stderr);
+
+  const existingCut = ["v4.7.2-stable.mod.1-engine.minigame.1"];
+  const secondCut = runIterationCheck("v4.7.2-stable.mod.1-engine.minigame.2", [
+    ...base,
+    ...existingCut,
+  ]);
+  assert.equal(secondCut.status, 0, secondCut.stderr);
+
+  const reusedCut = runIterationCheck("v4.7.2-stable.mod.1-engine.minigame.1", [
+    ...base,
+    ...existingCut,
+  ]);
+  assert.equal(reusedCut.status, 1, "an engine cut must increment on every release");
+  assert.match(reusedCut.stderr, /expected: -engine\.minigame\.2/);
+
+  const missingBase = runIterationCheck("v4.7.2-stable.mod.2-engine.minigame.1", base);
+  assert.equal(missingBase.status, 1, "an engine release must build on a published mod tag");
+  assert.match(missingBase.stderr, /does not exist on origin/);
 }
 assert.ok(
   releaseScript.includes("validate_release_tag.sh"),
