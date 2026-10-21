@@ -62,7 +62,7 @@ Godot Mini Game 可以把普通 Godot 项目转换成微信、抖音或 TikTok �
 
 | 契约 | 内置值 |
 |---|---|
-| 插件版本 | `v0.4.0` |
+| 插件版本 | `v0.4.1` |
 | Godot | `4.7.2.stable` · commit `ed1daf0bf001` |
 | Emscripten | `4.0.11` |
 | 构建 | `2d_full` · `release` · revision `2` |
