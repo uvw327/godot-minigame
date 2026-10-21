@@ -38,6 +38,11 @@ module_text_server_fb_enabled = "no"  # the advanced server covers it
 module_webp_enabled = "yes"  # lossless textures are stored as WebP
 module_ogg_enabled = "yes"  # audio
 module_vorbis_enabled = "yes"
+# WAV is not a module: AudioStreamWAV / AudioStreamPlaybackWAV compile from
+# scene/resources/audio_stream_wav.cpp, and SConstruct has no module_wav_enabled
+# option.  `modules_enabled_by_default = "no"` therefore removes only MP3 and
+# leaves WAV intact.  Shrink music by importing it as OGG (or QOA/IMA-ADPCM for
+# short effects), not by trying to trim the engine.
 module_godot_physics_2d_enabled = "yes"  # 2D combat collisions
 module_navigation_2d_enabled = "yes"  # 2D colonist pathing
 module_noise_enabled = "yes"  # FastNoiseLite terrain generation
