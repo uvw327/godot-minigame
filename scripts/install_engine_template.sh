@@ -79,8 +79,17 @@ VERSION="$(jq -er '.godot.version' "$TEMP_DIR/bundle/template.json")"
 COMMIT="$(jq -er '.godot.commit' "$TEMP_DIR/bundle/template.json")"
 EMSCRIPTEN_VERSION="$(jq -er '.emscriptenVersion' "$TEMP_DIR/bundle/template.json")"
 REVISION="$(jq -er '.revision' "$TEMP_DIR/bundle/template.json")"
+PROFILE="$(jq -er '.profile | select(type == "string" and test("^[a-z0-9][a-z0-9_-]*$"))' "$TEMP_DIR/bundle/template.json")"
 TAG="$(printf '%s' "$VERSION" \
     | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+)\.(.+)$/\1-\2/')"
+
+# The engine cut must be one this repository knows how to build, otherwise the
+# certified row would point at a profile nobody can reproduce.
+if [ ! -s "${SCRIPT_DIR}/engine_profiles/${PROFILE}.py" ]; then
+    echo "Bundle declares an unknown engine profile: ${PROFILE}" >&2
+    echo "Expected an options file at scripts/engine_profiles/${PROFILE}.py" >&2
+    exit 1
+fi
 
 if ! [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z]+$ ]]; then
     echo "Cannot derive an exact Godot tag from version: $VERSION" >&2
@@ -117,6 +126,7 @@ jq \
     --arg tag "$TAG" \
     --arg commit "$COMMIT" \
     --arg emscripten "$EMSCRIPTEN_VERSION" \
+    --arg profile "$PROFILE" \
     --argjson revision "$REVISION" \
     '
       .certified |= map(
@@ -126,6 +136,7 @@ jq \
           | .godotTag = $tag
           | .godotCommit = $commit
           | .emscriptenVersion = $emscripten
+          | .profile = $profile
           | .templateRevision = $revision
         else .
         end
@@ -143,6 +154,7 @@ echo "Installed bundled engine template:"
 echo "  Godot        ${VERSION} (tag ${TAG})"
 echo "  Commit       ${COMMIT}"
 echo "  Emscripten   ${EMSCRIPTEN_VERSION}"
+echo "  Profile      ${PROFILE}"
 echo "  Revision     ${REVISION}"
 echo ""
 echo "Remaining manual steps (prose that cannot be machine-derived):"

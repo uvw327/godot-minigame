@@ -93,7 +93,7 @@ func _ownership_manifest(root: String, platform: String) -> String:
 			"emscripten_version": "4.0.3",
 			"bridge_abi": TemplateBundle.BRIDGE_ABI,
 			"revision": 1,
-			"profile": TemplateBundle.PROFILE,
+			"profile": TemplateBundle.expected_profile(),
 			"target": TemplateBundle.TARGET,
 			"source_artifacts": {
 				"godot.js": {"sha256": source_js.get("sha256", "")},

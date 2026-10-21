@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: scripts/verify_wasm_template.sh <template.zip|template-directory>" >&2
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+    echo "Usage: scripts/verify_wasm_template.sh <template.zip|template-directory> [profile]" >&2
+    exit 1
+fi
+
+# The optional second argument is the engine profile the bundle must declare.
+# Without it the manifest only has to carry a well-formed profile name.
+EXPECTED_PROFILE="${2:-}"
+if [ -n "$EXPECTED_PROFILE" ] && ! [[ "$EXPECTED_PROFILE" =~ ^[a-z0-9][a-z0-9_-]*$ ]]; then
+    echo "Invalid engine profile name: $EXPECTED_PROFILE" >&2
     exit 1
 fi
 
@@ -63,6 +71,7 @@ done
 if ! jq -e \
     --argjson expected_schema "$EXPECTED_TEMPLATE_SCHEMA" \
     --argjson expected_bridge_abi "$EXPECTED_BRIDGE_ABI" \
+    --arg expected_profile "$EXPECTED_PROFILE" \
     '
       (.schema == $expected_schema) and
       (.godot.version | type == "string" and test("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9A-Za-z]+$")) and
@@ -70,7 +79,8 @@ if ! jq -e \
       (.emscriptenVersion | type == "string" and test("^[0-9]+\\.[0-9]+\\.[0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$")) and
       (.revision | type == "number" and . > 0 and (. % 1 == 0)) and
       (.bridgeAbi == $expected_bridge_abi) and
-      (.profile == "2d_full") and
+      (.profile | type == "string" and test("^[a-z0-9][a-z0-9_-]*$")) and
+      ($expected_profile == "" or .profile == $expected_profile) and
       (.target == "release") and
       (.features.simd == false) and
       (.features.threads == false) and
@@ -152,4 +162,4 @@ if ! wasm-validate --disable-simd "${TEMP_DIR}/godot.wasm" 2>"${TEMP_DIR}/wasm-v
     exit 1
 fi
 
-echo "Template bundle is valid: Godot $MANIFEST_VERSION, bridge ABI $EXPECTED_BRIDGE_ABI"
+echo "Template bundle is valid: Godot $MANIFEST_VERSION, bridge ABI $EXPECTED_BRIDGE_ABI, profile $(jq -r '.profile' "${PACKAGE_DIR}/template.json")"

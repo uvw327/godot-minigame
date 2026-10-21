@@ -140,7 +140,7 @@ func _init() -> void:
 	)
 	_assert_true(
 		int(current_status.bridge_abi) == TemplateBundle.BRIDGE_ABI
-		and str(current_status.profile) == TemplateBundle.PROFILE
+		and str(current_status.profile) == TemplateBundle.expected_profile()
 		and str(current_status.target) == TemplateBundle.TARGET,
 		"template status should expose the complete runtime identity",
 	)
@@ -291,7 +291,7 @@ func _init() -> void:
 			import_version,
 			COMMIT_A,
 			emscripten_version,
-			TemplateBundle.PROFILE,
+			TemplateBundle.expected_profile(),
 			TemplateBundle.TARGET,
 			TemplateBundle.BRIDGE_ABI,
 			1,
@@ -325,7 +325,7 @@ func _init() -> void:
 		import_version,
 		COMMIT_A,
 		EMSCRIPTEN_A,
-		TemplateBundle.PROFILE,
+		TemplateBundle.expected_profile(),
 		TemplateBundle.TARGET,
 		2,
 		1,
@@ -362,7 +362,7 @@ func _init() -> void:
 		import_version,
 		COMMIT_B,
 		"3.1.50",
-		TemplateBundle.PROFILE,
+		TemplateBundle.expected_profile(),
 		TemplateBundle.TARGET,
 		TemplateBundle.BRIDGE_ABI,
 		1,

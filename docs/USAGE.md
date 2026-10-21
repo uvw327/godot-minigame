@@ -223,7 +223,7 @@ The **Engine Template** strip at the top of the dock shows the current lookup re
 | Priority | Location | When it's used |
 |----------|----------|----------------|
 | 1 | `addons/godot_mini_game/` | Complete project override with `template.json` |
-| 2 | `{config}/godot_mini_game/templates/v1/{version}/{commit}/emsdk-{emscripten}/2d_full/release/abi-{abi}/r{revision}/` | Imported exact bundles; highest matching revision first |
+| 2 | `{config}/godot_mini_game/templates/v1/{version}/{commit}/emsdk-{emscripten}/{profile}/release/abi-{abi}/r{revision}/` | Imported exact bundles; highest matching revision first |
 | 3 | `addons/godot_mini_game/engine/` | Bundled certified bundle |
 | 4 | Old exact/major-minor store directories | Read-only compatibility, only with a complete exact manifest |
 
@@ -236,7 +236,7 @@ numerically newest Emscripten identity and then use a stable path tie-break.
 ### Import a new engine template
 
 Click **Import Template**, pick a zip:
-- Either a `godot_minigame_template_*_emsdk-*_2d-full_release_abi-*_r*.zip` from GitHub Actions
+- Either a `godot_minigame_template_*_emsdk-*_<profile>_release_abi-*_r*.zip` from GitHub Actions
 - Or one you built locally with `scripts/build_wasm_template.sh`
 
 Steps performed:
@@ -1721,15 +1721,18 @@ additionally remains behind the required `ttmg` and real-device release gates.
 
 # Specific Emscripten version
 ./scripts/build_wasm_template.sh 4.7.2-stable 3.1.62
+
+# A different engine cut
+BUILD_PROFILE=minigame ./scripts/build_wasm_template.sh
 ```
 
 Steps the script performs:
 
-1. Installs and activates the exact emsdk release (cache: `build_wasm/emsdk`, or the directory selected with `GODOT_MINIGAME_BUILD_DIR`).
-2. Clones the exact Godot tag and refuses a dirty or mismatched cached source tree.
-3. Temporarily enforces Emscripten longjmp mode, then builds the Web release template with `wasm_simd=no`, `threads=no`, dynamic linking disabled, and the WebRTC/XR modules disabled. The source patch is restored on exit.
+1. Installs and activates the exact emsdk release (cache: `build_wasm/emsdk`, or the directory selected with `GODOT_MINIGAME_BUILD_DIR`). When `emcc` is already on `PATH` the existing toolchain is used.
+2. Clones the exact Godot tag and refuses a dirty or mismatched cached source tree. `GODOT_SOURCE_DIR` selects an existing checkout instead.
+3. Temporarily enforces Emscripten longjmp mode, then builds the Web release template with `wasm_simd=no`, `threads=no`, dynamic linking disabled, and the engine cut taken from `scripts/engine_profiles/{BUILD_PROFILE}.py`. The source patch is restored on exit.
 4. Validates JavaScript syntax, Brotli/WASM structure, disabled features, provenance, and hashes with the shared verifier.
-5. Produces `build_wasm/output/{tag}/emsdk-{version}/2d_full/release/abi-{abi}/r{revision}/godot_minigame_template_{tag}_emsdk-{version}_2d-full_release_abi-{abi}_r{revision}.zip`.
+5. Produces `build_wasm/output/{tag}/emsdk-{version}/{profile}/release/abi-{abi}/r{revision}/godot_minigame_template_{tag}_emsdk-{version}_{profile}_release_abi-{abi}_r{revision}.zip`.
 6. Back in the editor, click **Import Template** in the dock and pick that ZIP.
 
 > Apple Silicon: ~5 min. Intel / Linux: ~8–15 min.

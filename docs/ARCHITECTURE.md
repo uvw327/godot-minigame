@@ -88,7 +88,8 @@ backup；插件会报告路径并停止发布，由操作者先归档、比对�
 - exact four-part Godot version such as `4.7.2.stable`;
 - full 40-character Godot source commit;
 - exact Emscripten toolchain version;
-- profile (`2d_full`) and target (`release`);
+- profile (the engine cut, for example `2d_full` or `minigame`) and target
+  (`release`);
 - positive template revision;
 - Bridge ABI;
 - WASM features: `simd`, `threads`, and `wasmExceptions` must be disabled, while
@@ -128,7 +129,7 @@ Imported bundles use a schema-versioned path:
     └── 4.7.2.stable/
         └── ed1daf0bf001b61586d9930840f2f1394092c079/
             └── emsdk-4.0.11/
-                └── 2d_full/
+                └── {profile}/
                     └── release/
                         └── abi-1/
                             └── r1/

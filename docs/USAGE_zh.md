@@ -200,7 +200,7 @@ Dock 顶部的 **引擎模板** 栏显示当前查找结果。插件按以下顺
 | 优先级 | 位置 | 使用场景 |
 |--------|------|---------|
 | 1 | `addons/godot_mini_game/` | 带 `template.json` 的完整项目覆盖包 |
-| 2 | `{config}/godot_mini_game/templates/v1/{version}/{commit}/emsdk-{emscripten}/2d_full/release/abi-{abi}/r{revision}/` | 精确版本导入包，优先最高匹配 revision |
+| 2 | `{config}/godot_mini_game/templates/v1/{version}/{commit}/emsdk-{emscripten}/{profile}/release/abi-{abi}/r{revision}/` | 精确版本导入包，优先最高匹配 revision |
 | 3 | `addons/godot_mini_game/engine/` | 内置认证模板包 |
 | 4 | 旧版精确版本 / major-minor 目录 | 只读兼容，仅接受有完整精确 manifest 的模板 |
 
@@ -212,7 +212,7 @@ Dock 顶部的 **引擎模板** 栏显示当前查找结果。插件按以下顺
 ### 导入新版引擎模板
 
 点 **导入模板**，选一个 zip：
-- 可以是 GitHub Actions 产出的 `godot_minigame_template_*_emsdk-*_2d-full_release_abi-*_r*.zip`
+- 可以是 GitHub Actions 产出的 `godot_minigame_template_*_emsdk-*_<profile>_release_abi-*_r*.zip`
 - 也可以是自己用 `scripts/build_wasm_template.sh` 编出来的 zip
 
 导入流程：
@@ -1678,15 +1678,18 @@ Native 导出会禁用 JavaScript eval。TikTok 请通过
 
 # 指定 Emscripten 版本
 ./scripts/build_wasm_template.sh 4.7.2-stable 3.1.62
+
+# 切换引擎裁剪方案
+BUILD_PROFILE=minigame ./scripts/build_wasm_template.sh
 ```
 
 流程：
 
-1. 安装并激活精确的 emsdk 版本（缓存默认位于 `build_wasm/emsdk`，也可用 `GODOT_MINIGAME_BUILD_DIR` 指定）。
-2. 克隆精确 Godot tag；缓存源码只要 tag 不符或存在本地改动，脚本就拒绝继续。
-3. 临时强制 Emscripten longjmp 模式，并用 `wasm_simd=no`、`threads=no`、禁用动态链接及 WebRTC/XR 模块等参数编译 Web release 模板；退出时自动恢复源码补丁。
+1. 安装并激活精确的 emsdk 版本（缓存默认位于 `build_wasm/emsdk`，也可用 `GODOT_MINIGAME_BUILD_DIR` 指定）。若 `PATH` 上已有 `emcc` 则直接复用。
+2. 克隆精确 Godot tag；缓存源码只要 tag 不符或存在本地改动，脚本就拒绝继续。`GODOT_SOURCE_DIR` 可以指定已有的源码目录。
+3. 临时强制 Emscripten longjmp 模式，并用 `wasm_simd=no`、`threads=no`、禁用动态链接等参数编译 Web release 模板，引擎裁剪方案取自 `scripts/engine_profiles/{BUILD_PROFILE}.py`；退出时自动恢复源码补丁。
 4. 使用共享校验器检查 JavaScript 语法、Brotli/WASM 结构、禁用特性、来源身份与哈希。
-5. 产物位于 `build_wasm/output/{tag}/emsdk-{version}/2d_full/release/abi-{abi}/r{revision}/godot_minigame_template_{tag}_emsdk-{version}_2d-full_release_abi-{abi}_r{revision}.zip`。
+5. 产物位于 `build_wasm/output/{tag}/emsdk-{version}/{profile}/release/abi-{abi}/r{revision}/godot_minigame_template_{tag}_emsdk-{version}_{profile}_release_abi-{abi}_r{revision}.zip`。
 6. 回到编辑器，点 Dock 里的 **导入模板** 选择该 ZIP。
 
 > Apple Silicon 约 5 分钟；Intel / Linux 约 8-15 分钟。

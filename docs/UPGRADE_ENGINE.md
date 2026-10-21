@@ -29,9 +29,11 @@ Either trigger the **Build Mini-Game WASM Template** GitHub Actions workflow wit
 
 This installs the exact Emscripten SDK, checks out the exact Godot tag, forces
 `SUPPORT_LONGJMP=emscripten` (mini-game hosts have no WASM exception support),
-builds with `wasm_simd=no threads=no dlink_enabled=no javascript_eval=yes`, and
+builds with `wasm_simd=no threads=no dlink_enabled=no javascript_eval=yes` and
+the engine cut described by `scripts/engine_profiles/{BUILD_PROFILE}.py`, and
 validates the result with `scripts/verify_wasm_template.sh`. The output is a
-`godot_minigame_template_4.7.2-stable_emsdk-4.0.11_2d-full_release_abi-1_r<N>.zip`.
+`godot_minigame_template_4.7.2-stable_emsdk-4.0.11_{profile}_release_abi-1_r<N>.zip`
+(the profile segment uses dashes, for example `2d-full` or `minigame`).
 
 > `javascript_eval=yes` is mandatory. In Godot 4.7 the flag also gates
 > `js/libs/library_godot_javascript_singleton.js` (`GodotJSWrapper`), so a
@@ -88,7 +90,7 @@ the `Engine.prototype['copyToFS']` export anchor.
 
 ```bash
 ./scripts/install_engine_template.sh \
-  build_wasm/output/4.7.2-stable/emsdk-4.0.11/2d_full/release/abi-1/r3/<bundle>.zip
+  build_wasm/output/4.7.2-stable/emsdk-4.0.11/{profile}/release/abi-1/r3/<bundle>.zip
 ```
 
 The installer runs the shared verifier, copies `godot.js`, `godot.wasm.br`,

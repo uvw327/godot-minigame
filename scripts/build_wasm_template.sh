@@ -9,17 +9,31 @@ set -euo pipefail
 # Optional environment variables:
 #   GODOT_MINIGAME_BUILD_DIR  Persistent compiler/source cache.
 #   TEMPLATE_REVISION         Bundle revision (default: 3).
+#   BUILD_PROFILE             Engine profile name (default: 2d_full). The
+#                             matching options file must live in
+#                             scripts/engine_profiles/<name>.py.
+#   GODOT_SOURCE_DIR          Use an existing Godot checkout instead of
+#                             cloning one. The checkout must be a pristine Git
+#                             worktree at exactly GODOT_TAG.
+#
+# The build invariants (platform, target, arch, threads, javascript_eval, ...)
+# live here so the local build and the CI workflow cannot drift apart.  What a
+# profile changes is the engine cut, and it lives in
+# scripts/engine_profiles/<profile>.py.
 
 export TZ=UTC
 
 GODOT_TAG="${1:-4.7.2-stable}"
 EMSDK_VERSION="${2:-4.0.11}"
 TEMPLATE_REVISION="${TEMPLATE_REVISION:-3}"
+BUILD_PROFILE="${BUILD_PROFILE:-2d_full}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 SUPPORT_MATRIX="${PROJECT_DIR}/support-matrix.json"
+PROFILE_DIR="${SCRIPT_DIR}/engine_profiles"
+PROFILE_FILE="${PROFILE_DIR}/${BUILD_PROFILE}.py"
 BUILD_ROOT="${GODOT_MINIGAME_BUILD_DIR:-${PROJECT_DIR}/build_wasm}"
-SOURCE_DIR="${BUILD_ROOT}/godot-${GODOT_TAG}"
+SOURCE_DIR="${GODOT_SOURCE_DIR:-${BUILD_ROOT}/godot-${GODOT_TAG}}"
 EMSDK_DIR="${BUILD_ROOT}/emsdk"
 CANONICAL_VERSION="${GODOT_TAG//-/.}"
 
@@ -33,6 +47,16 @@ if ! [[ "$EMSDK_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]
 fi
 if ! [[ "$TEMPLATE_REVISION" =~ ^[1-9][0-9]*$ ]]; then
     echo "TEMPLATE_REVISION must be a positive integer" >&2
+    exit 1
+fi
+if ! [[ "$BUILD_PROFILE" =~ ^[a-z0-9][a-z0-9_-]*$ ]]; then
+    echo "BUILD_PROFILE must be a lowercase engine profile name: $BUILD_PROFILE" >&2
+    exit 1
+fi
+if [ ! -s "$PROFILE_FILE" ]; then
+    echo "Missing engine profile options file: $PROFILE_FILE" >&2
+    echo "Known profiles:" >&2
+    find "$PROFILE_DIR" -maxdepth 1 -name '*.py' -printf '  %f\n' 2>/dev/null || true
     exit 1
 fi
 
@@ -49,18 +73,28 @@ if [ ! -s "$SUPPORT_MATRIX" ]; then
 fi
 BRIDGE_ABI="$(jq -er '.bridgeAbi | select(type == "number" and . > 0 and (. % 1 == 0))' "$SUPPORT_MATRIX")"
 TEMPLATE_SCHEMA="$(jq -er '.templateSchema | select(type == "number" and . > 0 and (. % 1 == 0))' "$SUPPORT_MATRIX")"
-OUTPUT_DIR="${3:-${BUILD_ROOT}/output/${GODOT_TAG}/emsdk-${EMSDK_VERSION}/2d_full/release/abi-${BRIDGE_ABI}/r${TEMPLATE_REVISION}}"
+OUTPUT_DIR="${3:-${BUILD_ROOT}/output/${GODOT_TAG}/emsdk-${EMSDK_VERSION}/${BUILD_PROFILE}/release/abi-${BRIDGE_ABI}/r${TEMPLATE_REVISION}}"
 
 mkdir -p "$BUILD_ROOT" "$OUTPUT_DIR"
 
-if [ ! -d "$EMSDK_DIR/.git" ]; then
-    git clone https://github.com/emscripten-core/emsdk.git "$EMSDK_DIR"
+if command -v emcc >/dev/null 2>&1; then
+    echo "Using the Emscripten toolchain already on PATH"
+else
+    if [ ! -d "$EMSDK_DIR/.git" ]; then
+        git clone https://github.com/emscripten-core/emsdk.git "$EMSDK_DIR"
+    fi
+    "${EMSDK_DIR}/emsdk" install "$EMSDK_VERSION"
+    "${EMSDK_DIR}/emsdk" activate "$EMSDK_VERSION"
+    source "${EMSDK_DIR}/emsdk_env.sh" >/dev/null
 fi
-"${EMSDK_DIR}/emsdk" install "$EMSDK_VERSION"
-"${EMSDK_DIR}/emsdk" activate "$EMSDK_VERSION"
-source "${EMSDK_DIR}/emsdk_env.sh" >/dev/null
 
-if [ ! -d "$SOURCE_DIR/.git" ]; then
+if [ -n "${GODOT_SOURCE_DIR:-}" ]; then
+    if [ ! -d "$SOURCE_DIR/.git" ]; then
+        echo "GODOT_SOURCE_DIR is not a Git checkout: $SOURCE_DIR" >&2
+        exit 1
+    fi
+    echo "Using the provided Godot checkout: $SOURCE_DIR"
+elif [ ! -d "$SOURCE_DIR/.git" ]; then
     git clone --depth 1 --branch "$GODOT_TAG" https://github.com/godotengine/godot.git "$SOURCE_DIR"
 fi
 
@@ -135,9 +169,7 @@ fi
         threads=no \
         dlink_enabled=no \
         javascript_eval=yes \
-        module_webrtc_enabled=no \
-        module_webxr_enabled=no \
-        module_openxr_enabled=no \
+        profile="$PROFILE_FILE" \
         -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)"
 )
 
@@ -178,7 +210,7 @@ node "${SCRIPT_DIR}/locate_godot_js_anchors.mjs" "$JS_FILE"
 
 PACKAGE_DIR="$(mktemp -d "${BUILD_ROOT}/template-package.XXXXXX")"
 cp "$JS_FILE" "${PACKAGE_DIR}/godot.js"
-cp "${SOURCE_DIR}/COPYRIGHT.txt" "${PACKAGE_DIR}/GODOT_COPYRIGHT.txt"
+cp "$SOURCE_DIR}/COPYRIGHT.txt" "${PACKAGE_DIR}/GODOT_COPYRIGHT.txt"
 brotli --quality=11 --force --output="${PACKAGE_DIR}/godot.wasm.br" "$WASM_FILE"
 printf '%s\n' "$CANONICAL_VERSION" > "${PACKAGE_DIR}/version.txt"
 
@@ -211,6 +243,7 @@ jq -n \
     --arg version "$CANONICAL_VERSION" \
     --arg commit "$GODOT_COMMIT" \
     --arg emscripten "$EMSDK_VERSION" \
+    --arg profile "$BUILD_PROFILE" \
     --arg js_sha "$JS_SHA" \
     --arg wasm_sha "$WASM_SHA" \
     --argjson schema "$TEMPLATE_SCHEMA" \
@@ -220,7 +253,7 @@ jq -n \
       schema: $schema,
       godot: {version: $version, commit: $commit},
       emscriptenVersion: $emscripten,
-      profile: "2d_full",
+      profile: $profile,
       target: "release",
       revision: $revision,
       bridgeAbi: $bridge_abi,
@@ -240,7 +273,8 @@ jq -n \
 # of identical artifacts produce identical bundle bytes.
 find "$PACKAGE_DIR" -type f -exec chmod 0644 {} +
 find "$PACKAGE_DIR" -type f -exec touch -t 198001010000 {} +
-BUNDLE_NAME="godot_minigame_template_${GODOT_TAG}_emsdk-${EMSDK_VERSION}_2d-full_release_abi-${BRIDGE_ABI}_r${TEMPLATE_REVISION}.zip"
+PROFILE_TAG="${BUILD_PROFILE//_/-}"
+BUNDLE_NAME="godot_minigame_template_${GODOT_TAG}_emsdk-${EMSDK_VERSION}_${PROFILE_TAG}_release_abi-${BRIDGE_ABI}_r${TEMPLATE_REVISION}.zip"
 BUNDLE_PATH="${OUTPUT_DIR}/${BUNDLE_NAME}"
 rm -f "$BUNDLE_PATH" "${BUNDLE_PATH}.sha256"
 (
@@ -249,7 +283,7 @@ rm -f "$BUNDLE_PATH" "${BUNDLE_PATH}.sha256"
 )
 
 write_sha256 "$BUNDLE_PATH"
-"${SCRIPT_DIR}/verify_wasm_template.sh" "$BUNDLE_PATH"
+"${SCRIPT_DIR}/verify_wasm_template.sh" "$BUNDLE_PATH" "$BUILD_PROFILE"
 (
     cd "$OUTPUT_DIR"
     if command -v shasum >/dev/null 2>&1; then
@@ -261,3 +295,4 @@ write_sha256 "$BUNDLE_PATH"
 
 echo "Validated template bundle: $BUNDLE_PATH"
 echo "Godot source commit: $GODOT_COMMIT"
+echo "Engine profile: $BUILD_PROFILE"

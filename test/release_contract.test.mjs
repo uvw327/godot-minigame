@@ -11,6 +11,18 @@ const supportMatrix = JSON.parse(read("support-matrix.json"));
 const engineTemplate = JSON.parse(read("addons/godot_mini_game/engine/template.json"));
 const pluginVersion = pluginConfig.match(/^version="([^"]+)"$/m)?.[1];
 
+const bundledRow = supportMatrix.certified.find((target) => target.template.source === "bundled");
+assert.ok(bundledRow, "the support matrix must certify exactly one bundled engine");
+assert.equal(
+  engineTemplate.profile,
+  bundledRow.profile,
+  "the bundled engine and the certification row must declare the same engine profile",
+);
+assert.ok(
+  fs.existsSync(path.join(projectRoot, "scripts", "engine_profiles", `${engineTemplate.profile}.py`)),
+  "the bundled engine profile must have a build options file",
+);
+
 assert.ok(pluginVersion, "plugin.cfg must declare a version");
 assert.equal(
   supportMatrix.pluginVersion,
@@ -51,7 +63,11 @@ for (const target of supportMatrix.certified) {
   assert.match(target.godotVersion, /^\d+\.\d+\.\d+\.[A-Za-z0-9]+$/);
   assert.match(target.godotCommit, /^[0-9a-f]{40}$/i);
   assert.match(target.emscriptenVersion, /^\d+\.\d+\.\d+$/);
-  assert.equal(target.profile, "2d_full");
+  assert.match(
+    target.profile,
+    /^[a-z0-9][a-z0-9_-]*$/,
+    "every certification row must name a valid engine profile",
+  );
   assert.equal(target.target, "release");
   assert.deepEqual(
     Object.keys(target.platforms || {}).sort(),
@@ -149,29 +165,30 @@ for (const [platform, expected] of [
 }
 
 const buildWorkflow = read(".github/workflows/build-template.yml");
+const buildScript = read("scripts/build_wasm_template.sh");
 for (const requiredFlag of [
   "wasm_simd=no",
   "threads=no",
   "dlink_enabled=no",
   "javascript_eval=yes",
 ]) {
-  assert.ok(buildWorkflow.includes(requiredFlag), `template build must include ${requiredFlag}`);
+  assert.ok(buildScript.includes(requiredFlag), `template build must include ${requiredFlag}`);
 }
 assert.ok(
-  !buildWorkflow.includes("javascript_eval=no"),
+  !buildScript.includes("javascript_eval=no"),
   "the bridge-hostile javascript_eval=no flag must never return",
 );
-assert.ok(!buildWorkflow.includes("use_exceptions=yes"), "unsupported pseudo-profile flags must not return");
+assert.ok(!buildScript.includes("use_exceptions=yes"), "unsupported pseudo-profile flags must not return");
 assert.ok(
   read("scripts/verify_wasm_template.sh").includes("wasm-validate --disable-simd"),
   "the shared template verifier must reject SIMD",
 );
 assert.ok(
-  !buildWorkflow.includes("--disable-threads") && !buildWorkflow.includes("--disable-exceptions"),
+  !buildScript.includes("--disable-threads") && !buildScript.includes("--disable-exceptions"),
   "WABT keeps threads/exceptions disabled by default and has no disable flags for them",
 );
 assert.ok(
-  buildWorkflow.includes("scripts/verify_wasm_template.sh"),
+  buildScript.includes("verify_wasm_template.sh"),
   "CI and local builds must use the same template verifier",
 );
 assert.ok(buildWorkflow.includes(".bridgeAbi"), "bridge ABI must come from support-matrix.json");
@@ -179,14 +196,15 @@ assert.ok(buildWorkflow.includes(".templateSchema"), "template schema must come 
 assert.ok(buildWorkflow.includes("Template revision must be a positive integer"));
 assert.ok(
   buildWorkflow.includes(
-    "template-${GODOT_TAG}-emsdk-${EMSDK_VERSION}-2d-full-release-abi-${bridge_abi}-r${TEMPLATE_REVISION}",
+    "template-${GODOT_TAG}-emsdk-${EMSDK_VERSION}-${profile_tag}-release-abi-${bridge_abi}-r${TEMPLATE_REVISION}",
   ),
   "immutable release tags must cover every independent build input",
 );
 assert.ok(buildWorkflow.includes("git ls-remote --tags origin"));
-assert.ok(buildWorkflow.includes("GODOT_COPYRIGHT.txt"));
-assert.ok(buildWorkflow.includes("touch -t 198001010000"));
+assert.ok(buildScript.includes("GODOT_COPYRIGHT.txt"));
+assert.ok(buildScript.includes("touch -t 198001010000"));
 assert.ok(buildWorkflow.includes("pip install scons==4.9.1"));
+assert.ok(!buildScript.includes("head -1"), "CI must reject ambiguous stale build artifacts");
 assert.ok(!buildWorkflow.includes("head -1"), "CI must reject ambiguous stale build artifacts");
 assert.match(
   buildWorkflow,
@@ -194,12 +212,86 @@ assert.match(
   "bridge-enabled CI templates must default to a new immutable revision",
 );
 assert.ok(
-  buildWorkflow.includes("scripts/locate_godot_js_anchors.mjs"),
+  buildScript.includes("locate_godot_js_anchors.mjs"),
   "the engine build must audit exporter patch anchors before publishing",
 );
 assert.ok(
   buildWorkflow.includes('"engine/**"'),
   "pushing an engine/** branch must be able to request an engine rebuild",
+);
+assert.ok(
+  buildWorkflow.includes("scripts/build_wasm_template.sh"),
+  "CI and local builds must run the same build script",
+);
+
+// The engine cut is a profile: one options file per profile, and the branch
+// name selects it.
+assert.ok(
+  buildScript.includes('profile="$PROFILE_FILE"'),
+  "the build must hand the engine profile to scons",
+);
+assert.ok(
+  buildScript.includes("scripts/engine_profiles"),
+  "engine profiles must live next to the build script",
+);
+assert.ok(
+  buildWorkflow.includes("scripts/engine_profiles/${profile}.py"),
+  "CI must reject an unknown engine profile",
+);
+for (const profile of ["2d_full", "minigame"]) {
+  const options = read(`scripts/engine_profiles/${profile}.py`);
+  assert.ok(
+    !options.includes('module_openxr_enabled = "yes"'),
+    `profile ${profile} must not ship OpenXR`,
+  );
+  assert.ok(
+    !options.includes('module_webxr_enabled = "yes"'),
+    `profile ${profile} must not ship WebXR`,
+  );
+  assert.ok(
+    !options.includes('module_webrtc_enabled = "yes"'),
+    `profile ${profile} must not ship WebRTC`,
+  );
+  if (!options.includes('modules_enabled_by_default = "no"')) {
+    // A profile that keeps the stock module set needs no whitelist.
+    continue;
+  }
+  for (const requiredModule of [
+    "module_gdscript_enabled",
+    "module_freetype_enabled",
+    "module_text_server_adv_enabled",
+    "module_webp_enabled",
+    "module_ogg_enabled",
+    "module_vorbis_enabled",
+    "module_godot_physics_2d_enabled",
+    "module_navigation_2d_enabled",
+  ]) {
+    assert.ok(
+      options.includes(`${requiredModule} = "yes"`),
+      `profile ${profile} must keep ${requiredModule}`,
+    );
+  }
+}
+const minigameProfile = read("scripts/engine_profiles/minigame.py");
+assert.ok(
+  minigameProfile.includes('modules_enabled_by_default = "no"'),
+  "the mini-game cut must start from an empty module set",
+);
+assert.ok(
+  minigameProfile.includes('disable_3d = "yes"') === false,
+  "the mini-game cut keeps 3D rendering for the planet model",
+);
+assert.ok(
+  minigameProfile.includes('module_godot_physics_2d_enabled = "yes"'),
+  "the mini-game cut must keep 2D physics for combat",
+);
+assert.ok(
+  minigameProfile.includes('module_navigation_2d_enabled = "yes"'),
+  "the mini-game cut must keep 2D navigation for the colony sim",
+);
+assert.ok(
+  minigameProfile.includes('disable_advanced_gui = "yes"') === false,
+  "the mini-game cut must keep the advanced GUI controls",
 );
 
 const smokeWorkflow = read(".github/workflows/smoke-test-export.yml");
