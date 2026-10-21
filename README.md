@@ -64,7 +64,7 @@ not a filesystem-wide crash-atomic primitive. Full boundaries are documented in
 
 | Contract | Bundled value |
 |---|---|
-| Plugin release | `v0.4.2` |
+| Plugin release | `v0.4.3` |
 | Godot | `4.7.2.stable` · commit `ed1daf0bf001` |
 | Emscripten | `4.0.11` |
 | Build | `2d_full` · `release` · revision `3` |
