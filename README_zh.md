@@ -65,7 +65,7 @@ Godot Mini Game 可以把普通 Godot 项目转换成微信、抖音或 TikTok �
 | 插件版本 | `v0.4.1` |
 | Godot | `4.7.2.stable` · commit `ed1daf0bf001` |
 | Emscripten | `4.0.11` |
-| 构建 | `2d_full` · `release` · revision `2` |
+| 构建 | `2d_full` · `release` · revision `3` |
 | 运行时契约 | Bridge ABI `1` · template schema `1` · output schema `1` |
 
 - ✅ **微信小游戏（`wx`）**——完整导出、Manifest、WASM 与包结构检查。

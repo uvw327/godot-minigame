@@ -67,7 +67,7 @@ not a filesystem-wide crash-atomic primitive. Full boundaries are documented in
 | Plugin release | `v0.4.1` |
 | Godot | `4.7.2.stable` · commit `ed1daf0bf001` |
 | Emscripten | `4.0.11` |
-| Build | `2d_full` · `release` · revision `2` |
+| Build | `2d_full` · `release` · revision `3` |
 | Runtime contract | Bridge ABI `1` · template schema `1` · output schema `1` |
 
 - ✅ **WeChat Mini Game (`wx`)** — full export, manifest, WASM, and package checks.

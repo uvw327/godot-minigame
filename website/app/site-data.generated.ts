@@ -53,7 +53,7 @@ export const releaseData = {
     "emscriptenVersion": "4.0.11",
     "profile": "2d_full",
     "target": "release",
-    "templateRevision": 2,
+    "templateRevision": 3,
     "template": {
       "source": "bundled"
     },
@@ -71,7 +71,7 @@ export const releaseData = {
       "emscriptenVersion": "4.0.11",
       "profile": "2d_full",
       "target": "release",
-      "templateRevision": 2,
+      "templateRevision": 3,
       "template": {
         "source": "bundled"
       },
