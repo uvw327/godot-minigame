@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "pluginVersion": "0.3.0",
+  "pluginVersion": "0.4.0",
   "bridgeAbi": 1,
   "templateSchema": 1,
   "outputManifestSchema": 1,
@@ -49,13 +49,13 @@
   },
   "certified": [
     {
-      "godotVersion": "4.6.1.stable",
-      "godotTag": "4.6.1-stable",
-      "godotCommit": "14d19694e0c88a3f9e82d899a0400f27a24c176e",
-      "emscriptenVersion": "4.0.3",
+      "godotVersion": "4.7.2.stable",
+      "godotTag": "4.7.2-stable",
+      "godotCommit": "ed1daf0bf001b61586d9930840f2f1394092c079",
+      "emscriptenVersion": "4.0.11",
       "profile": "2d_full",
       "target": "release",
-      "templateRevision": 1,
+      "templateRevision": 2,
       "template": {
         "source": "bundled"
       },

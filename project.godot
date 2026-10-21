@@ -18,7 +18,7 @@ config/name="MiniGameTest"
 config/description="Test project for mini-game export plugin"
 config/version="1.0.0"
 run/main_scene="res://scenes/main.tscn"
-config/features=PackedStringArray("4.6")
+config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"
 
 [autoload]

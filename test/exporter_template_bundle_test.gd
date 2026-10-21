@@ -4,7 +4,7 @@ const TemplateBundle = preload("res://addons/godot_mini_game/core/template_bundl
 const Exporter = preload("res://addons/godot_mini_game/exporter.gd")
 const COMMIT_A := "abcdef1234567890abcdef1234567890abcdef12"
 const COMMIT_B := "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-const EMSCRIPTEN_A := "4.0.3"
+const EMSCRIPTEN_A := "4.0.11"
 
 var _failed := false
 var _root := OS.get_temp_dir().path_join(

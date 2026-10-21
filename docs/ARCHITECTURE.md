@@ -85,7 +85,7 @@ backup；插件会报告路径并停止发布，由操作者先归档、比对�
 `template.json` is mandatory and pins all compatibility axes:
 
 - schema version;
-- exact four-part Godot version such as `4.6.1.stable`;
+- exact four-part Godot version such as `4.7.2.stable`;
 - full 40-character Godot source commit;
 - exact Emscripten toolchain version;
 - profile (`2d_full`) and target (`release`);
@@ -110,9 +110,9 @@ Imported bundles use a schema-versioned path:
 ```text
 {Godot config}/godot_mini_game/templates/
 └── v1/
-    └── 4.6.1.stable/
-        └── 14d19694e0c88a3f9e82d899a0400f27a24c176e/
-            └── emsdk-4.0.3/
+    └── 4.7.2.stable/
+        └── ed1daf0bf001b61586d9930840f2f1394092c079/
+            └── emsdk-4.0.11/
                 └── 2d_full/
                     └── release/
                         └── abi-1/
@@ -182,10 +182,10 @@ The project has four independent version numbers:
 
 Godot compatibility is data in `support-matrix.json`, not a broad `4.x` claim.
 Each certified row records an exact tag, source commit, Emscripten version,
-profile, ABI, revision, and per-platform automation status. Adding Godot 4.7, for example, means building
-and verifying a new bundle, importing it beside 4.6.1, extending the matrix,
+profile, ABI, revision, and per-platform automation status. Adding Godot 4.8, for example, means building
+and verifying a new bundle, importing it beside 4.7.2, extending the matrix,
 and running the WeChat, Douyin, and TikTok smoke exports. It does not require replacing
-the 4.6.1 bundle.
+the 4.7.2 bundle.
 
 Exactly one row uses `template.source: bundled`. Additional rows use a pinned
 template Release tag and asset. CI expands every `automated` platform entry into
@@ -193,8 +193,8 @@ an exact Godot-version export job and installs that row's release bundle before
 testing, so adding a row also adds the corresponding test jobs.
 
 插件 SemVer、模板 schema、Bridge ABI、输出 manifest schema 是四条独立版本轴。
-Godot 支持范围只由 `support-matrix.json` 的精确记录定义；新增 4.7 时，应新增并验证
-一份并存模板、扩展矩阵并跑微信、抖音与 TikTok 三个平台冒烟，而不是覆盖 4.6.1。
+Godot 支持范围只由 `support-matrix.json` 的精确记录定义；新增 4.8 时，应新增并验证
+一份并存模板、扩展矩阵并跑微信、抖音与 TikTok 三个平台冒烟，而不是覆盖 4.7.2。
 其中恰好一行使用 `template.source: bundled`；其它版本引用固定的模板 Release tag 与
 asset。CI 会把每个 `automated` 平台项展开为对应 Godot 精确版本的导出任务。
 `automated` 只描述仓库导出冒烟，不等于 DevTool 编译或真机认证；展示层与发布流程
@@ -220,7 +220,7 @@ asset。CI 会把每个 `automated` 平台项展开为对应 Godot 精确版本�
 ## Breaking changes in 0.2 / 0.2 破坏性变更
 
 - Legacy ZIPs without `template.json` can no longer be imported.
-- `4.6` or `4.6.1` is not considered equal to `4.6.1.stable`.
+- `4.7` or `4.7.2` is not considered equal to `4.7.2.stable`.
 - The standard Web export template is no longer a fallback.
 - Existing non-empty output folders without a valid ownership manifest are not
   adopted automatically. Export to a new empty folder once, then keep using
@@ -232,7 +232,7 @@ asset。CI 会把每个 `automated` 平台项展开为对应 Godot 精确版本�
   effect.
 
 - 不再接受缺少 `template.json` 的旧 ZIP。
-- `4.6`、`4.6.1` 不等于 `4.6.1.stable`。
+- `4.7`、`4.7.2` 不等于 `4.7.2.stable`。
 - 官方标准 Web 模板不再作为回退。
 - 不再自动接管没有有效所有权 manifest 的非空输出目录。首次请导出到新空目录，
   后续持续使用该受管目录。

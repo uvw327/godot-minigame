@@ -36,7 +36,7 @@ test("exports a complete static homepage", async () => {
   assert.match(html, /抖音小游戏/);
   assert.match(html, /TikTok Mini Game/);
   assert.doesNotMatch(html, /architecture-stage-head|transaction publish|atomic publish|>CLI</);
-  assert.match(html, /v0\.3\.0/);
+  assert.match(html, /v0\.4\.0/);
   assert.match(html, /godot_mini_game_vX\.Y\.Z\.zip/);
   assert.doesNotMatch(html, /v0\.1\.1|v0\.2\.1|4\.3–4\.6/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/);

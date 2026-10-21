@@ -15,7 +15,7 @@
 <p align="center">
   <a href="https://github.com/AnranS/godot_for_minigame/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/AnranS/godot_for_minigame?display_name=tag&style=flat-square" /></a>
   <a href="https://github.com/AnranS/godot_for_minigame/actions/workflows/smoke-test-export.yml"><img alt="Export tests" src="https://img.shields.io/github/actions/workflow/status/AnranS/godot_for_minigame/smoke-test-export.yml?branch=main&label=export%20tests&style=flat-square" /></a>
-  <img alt="Godot 4.6.1" src="https://img.shields.io/badge/Godot-4.6.1-478CBF?logo=godot-engine&logoColor=white&style=flat-square" />
+  <img alt="Godot 4.7.2" src="https://img.shields.io/badge/Godot-4.7.2-478CBF?logo=godot-engine&logoColor=white&style=flat-square" />
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/AnranS/godot_for_minigame?style=flat-square" /></a>
 </p>
 
@@ -64,10 +64,10 @@ not a filesystem-wide crash-atomic primitive. Full boundaries are documented in
 
 | Contract | Bundled value |
 |---|---|
-| Plugin release | `v0.3.0` |
-| Godot | `4.6.1.stable` · commit `14d19694e0c8` |
-| Emscripten | `4.0.3` |
-| Build | `2d_full` · `release` · revision `1` |
+| Plugin release | `v0.4.0` |
+| Godot | `4.7.2.stable` · commit `ed1daf0bf001` |
+| Emscripten | `4.0.11` |
+| Build | `2d_full` · `release` · revision `2` |
 | Runtime contract | Bridge ABI `1` · template schema `1` · output schema `1` |
 
 - ✅ **WeChat Mini Game (`wx`)** — full export, manifest, WASM, and package checks.

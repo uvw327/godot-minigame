@@ -1694,18 +1694,16 @@ func _patch_godot_js(path: String, platform: String = "wechat") -> Error:
 		return ERR_FILE_CORRUPT
 
 	var _emscripten_instantiate_old := (
-		"if(Module[\"instantiateWasm\"]){return new Promise((resolve,reject)=>{try{"
-		+ "Module[\"instantiateWasm\"](info,(mod,inst)=>{receiveInstance(mod,inst);"
-		+ "resolve(mod.exports)})}catch(e){err(`Module.instantiateWasm callback failed "
-		+ "with error: ${e}`);reject(e)}})}"
+		"if(Module[\"instantiateWasm\"]){return new Promise((resolve,reject)=>{"
+		+ "Module[\"instantiateWasm\"](info,(mod,inst)=>{"
+		+ "resolve(receiveInstance(mod,inst))})})}"
 	)
 	var _emscripten_instantiate_new := (
 		"if(Module[\"instantiateWasm\"]){return new Promise((resolve,reject)=>{try{"
 		+ "var instantiateOperation=Module[\"instantiateWasm\"](info,(mod,inst)=>{"
-		+ "receiveInstance(mod,inst);resolve(mod.exports)});if(instantiateOperation&&"
+		+ "resolve(receiveInstance(mod,inst))});if(instantiateOperation&&"
 		+ "typeof instantiateOperation.then===\"function\")instantiateOperation.catch(reject)"
-		+ "}catch(e){err(`Module.instantiateWasm callback failed with error: ${e}`);"
-		+ "reject(e)}})}"
+		+ "}catch(e){reject(e)}})}"
 	)
 	if content.find(_emscripten_instantiate_old) != -1:
 		content = content.replace(_emscripten_instantiate_old, _emscripten_instantiate_new)

@@ -26,7 +26,7 @@
 
 | 工具 | 版本 | 用途 |
 |------|------|------|
-| Godot | 4.6.1 已认证；其他版本必须精确匹配模板 | 引擎本体 |
+| Godot | 4.7.2 已认证；其他版本必须精确匹配模板 | 引擎本体 |
 | 微信开发者工具 | latest stable | 调试/上传微信小游戏 |
 | 抖音开发者工具 | latest stable | 调试/上传抖音小游戏 |
 | TikTok 客户端 | 43.4.0+ | Native `TTWebAssembly` 运行时 |
@@ -1670,14 +1670,14 @@ Native 导出会禁用 JavaScript eval。TikTok 请通过
 还要通过必需的 `ttmg` 与真机发布门禁。
 
 ```bash
-# 默认 Godot 4.6.1-stable + Emscripten 4.0.3
+# 默认 Godot 4.7.2-stable + Emscripten 4.0.11
 ./scripts/build_wasm_template.sh
 
 # 指定 Godot 版本
 ./scripts/build_wasm_template.sh 4.4.1-stable
 
 # 指定 Emscripten 版本
-./scripts/build_wasm_template.sh 4.6.1-stable 3.1.62
+./scripts/build_wasm_template.sh 4.7.2-stable 3.1.62
 ```
 
 流程：

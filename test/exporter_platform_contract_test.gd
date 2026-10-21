@@ -132,6 +132,16 @@ func _init() -> void:
 	)
 
 	var engine_source := "res://addons/godot_mini_game/engine/godot.js"
+	# Godot 4.7 certifies an eval-free engine (javascript_eval=no compiles the
+	# eval bridge out). Build a synthetic legacy fixture so the TikTok eval-strip
+	# path stays covered even though the bundled engine no longer carries eval().
+	var legacy_eval := _root.path_join("legacy-eval-engine.js")
+	_copy(engine_source, legacy_eval)
+	_write(legacy_eval, _read(legacy_eval)
+		+ "\nfunction _godot_js_eval(code){return eval(code)}\n"
+		+ "var IDHandler = null;\n"
+		+ "godot_js_eval:_godot_js_eval\n")
+
 	var tiktok_engine := _root.path_join("patched-tiktok.js")
 	_copy(engine_source, tiktok_engine)
 	var patch_error := exporter._patch_godot_js(tiktok_engine, "tiktok")
@@ -150,7 +160,6 @@ func _init() -> void:
 		"Engine.prototype['ensureFSDirectory']",
 		"var instantiateOperation=Module[\"instantiateWasm\"]",
 		"return operation;",
-		"godot_js_eval:_godot_js_disabled",
 	]:
 		_assert_true(patched.contains(marker), "patched engine missing: %s" % marker)
 	var syntax_output: Array = []
@@ -173,7 +182,31 @@ func _init() -> void:
 		"certified godot.js should patch for WeChat",
 	)
 	_assert_true(
-		_read(wechat_engine).contains("eval("),
+		not _read(wechat_engine).contains("eval("),
+		"the certified eval-free engine must stay eval-free on WeChat",
+	)
+
+	# A legacy eval-bearing engine must be stripped for TikTok without changing
+	# what other platforms emit, so the TikTok restriction is isolated.
+	var legacy_tiktok := _root.path_join("legacy-tiktok.js")
+	var legacy_wechat := _root.path_join("legacy-wechat.js")
+	_copy(legacy_eval, legacy_tiktok)
+	_copy(legacy_eval, legacy_wechat)
+	_assert_true(
+		exporter._patch_godot_js(legacy_tiktok, "tiktok") == OK,
+		"legacy eval engines should patch for TikTok",
+	)
+	_assert_true(
+		not _read(legacy_tiktok).contains("eval(")
+		and _read(legacy_tiktok).contains("godot_js_eval:_godot_js_disabled"),
+		"TikTok must route legacy eval to the disabled bridge",
+	)
+	_assert_true(
+		exporter._patch_godot_js(legacy_wechat, "wechat") == OK,
+		"legacy eval engines should patch for WeChat",
+	)
+	_assert_true(
+		_read(legacy_wechat).contains("eval("),
 		"the TikTok eval restriction must not silently change other platforms",
 	)
 

@@ -29,6 +29,6 @@ Godot Engine is distributed under the MIT License:
 > SOFTWARE.
 
 Godot includes additional third-party components. The complete component,
-copyright, and license list from the exact bundled Godot 4.6.1-stable source is
+copyright, and license list from the exact bundled Godot 4.7.2-stable source is
 distributed beside this file as `GODOT_COPYRIGHT.txt`. Future versioned engine
 template bundles carry the notice from their own exact source checkout.

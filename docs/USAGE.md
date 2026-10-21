@@ -26,7 +26,7 @@ This guide walks through every step from install to store submission, and docume
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Godot | 4.6.1 certified; exact template required otherwise | Engine |
+| Godot | 4.7.2 certified; exact template required otherwise | Engine |
 | WeChat DevTools | latest stable | Debug + upload WeChat mini games |
 | Douyin DevTools | latest stable | Debug + upload Douyin mini games |
 | TikTok client | 43.4.0+ | Native `TTWebAssembly` runtime |
@@ -1713,14 +1713,14 @@ to `support-matrix.json` and passes the generated platform smoke matrix. TikTok
 additionally remains behind the required `ttmg` and real-device release gates.
 
 ```bash
-# Default: Godot 4.6.1-stable + Emscripten 4.0.3
+# Default: Godot 4.7.2-stable + Emscripten 4.0.11
 ./scripts/build_wasm_template.sh
 
 # Specific Godot version
 ./scripts/build_wasm_template.sh 4.4.1-stable
 
 # Specific Emscripten version
-./scripts/build_wasm_template.sh 4.6.1-stable 3.1.62
+./scripts/build_wasm_template.sh 4.7.2-stable 3.1.62
 ```
 
 Steps the script performs:

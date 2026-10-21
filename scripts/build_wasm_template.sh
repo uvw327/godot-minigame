@@ -12,8 +12,8 @@ set -euo pipefail
 
 export TZ=UTC
 
-GODOT_TAG="${1:-4.6.1-stable}"
-EMSDK_VERSION="${2:-4.0.3}"
+GODOT_TAG="${1:-4.7.2-stable}"
+EMSDK_VERSION="${2:-4.0.11}"
 TEMPLATE_REVISION="${TEMPLATE_REVISION:-2}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -24,11 +24,11 @@ EMSDK_DIR="${BUILD_ROOT}/emsdk"
 CANONICAL_VERSION="${GODOT_TAG//-/.}"
 
 if ! [[ "$GODOT_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z]+$ ]]; then
-    echo "Godot tag must be exact, for example 4.6.1-stable: $GODOT_TAG" >&2
+    echo "Godot tag must be exact, for example 4.7.2-stable: $GODOT_TAG" >&2
     exit 1
 fi
 if ! [[ "$EMSDK_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$ ]]; then
-    echo "Emscripten SDK version must be exact, for example 4.0.3: $EMSDK_VERSION" >&2
+    echo "Emscripten SDK version must be exact, for example 4.0.11: $EMSDK_VERSION" >&2
     exit 1
 fi
 if ! [[ "$TEMPLATE_REVISION" =~ ^[1-9][0-9]*$ ]]; then
@@ -135,8 +135,12 @@ fi
         -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)"
 )
 
+# Godot 4.7 splits the Web build into `<stem>.engine.js` (the Engine class),
+# `<stem>.js` (the raw Emscripten module), and `<stem>.wrapped.js` (both
+# concatenated). The wrapped file is what Godot installs as the Web template's
+# `godot.js`, so it is the single template entry point we bundle.
 shopt -s nullglob
-JS_CANDIDATES=("${SOURCE_DIR}"/bin/godot.web.template_release.wasm32*.js)
+JS_CANDIDATES=("${SOURCE_DIR}"/bin/godot.web.template_release.wasm32*.wrapped.js)
 WASM_CANDIDATES=("${SOURCE_DIR}"/bin/godot.web.template_release.wasm32*.wasm)
 shopt -u nullglob
 if [ "${#JS_CANDIDATES[@]}" -ne 1 ] || [ "${#WASM_CANDIDATES[@]}" -ne 1 ]; then
@@ -154,7 +158,7 @@ if [ ! -s "$JS_FILE" ] || [ ! -s "$WASM_FILE" ]; then
     echo "Godot build did not produce non-empty JavaScript and WASM artifacts" >&2
     exit 1
 fi
-if [ "${JS_FILE%.js}" != "${WASM_FILE%.wasm}" ]; then
+if [ "${JS_FILE%.wrapped.js}" != "${WASM_FILE%.wasm}" ]; then
     echo "JavaScript and WASM artifact stems do not match:" >&2
     echo "  $JS_FILE" >&2
     echo "  $WASM_FILE" >&2

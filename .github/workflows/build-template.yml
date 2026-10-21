@@ -4,15 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       godot_version:
-        description: "Exact Godot tag, for example 4.6.1-stable"
+        description: "Exact Godot tag, for example 4.7.2-stable"
         required: true
         type: string
-        default: "4.6.1-stable"
+        default: "4.7.2-stable"
       emscripten_version:
         description: "Exact Emscripten SDK version"
         required: true
         type: string
-        default: "4.0.3"
+        default: "4.0.11"
       template_revision:
         description: "Immutable template revision"
         required: true
@@ -45,11 +45,11 @@ jobs:
         run: |
           set -euo pipefail
           if ! [[ "$GODOT_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z]+$ ]]; then
-            echo "Godot tag must be exact, for example 4.6.1-stable: $GODOT_TAG" >&2
+            echo "Godot tag must be exact, for example 4.7.2-stable: $GODOT_TAG" >&2
             exit 1
           fi
           if ! [[ "$EMSDK_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$ ]]; then
-            echo "Emscripten SDK version must be exact, for example 4.0.3: $EMSDK_VERSION" >&2
+            echo "Emscripten SDK version must be exact, for example 4.0.11: $EMSDK_VERSION" >&2
             exit 1
           fi
           if ! [[ "$TEMPLATE_REVISION" =~ ^[1-9][0-9]*$ ]]; then
@@ -139,8 +139,10 @@ jobs:
         id: artifacts
         run: |
           set -euo pipefail
+          # Godot 4.7 emits <stem>.engine.js, <stem>.js, and <stem>.wrapped.js;
+          # the wrapped file is the Web template's `godot.js` entry point.
           shopt -s nullglob
-          js_candidates=(godot-src/bin/godot.web.template_release.wasm32*.js)
+          js_candidates=(godot-src/bin/godot.web.template_release.wasm32*.wrapped.js)
           wasm_candidates=(godot-src/bin/godot.web.template_release.wasm32*.wasm)
           shopt -u nullglob
           if [ "${#js_candidates[@]}" -ne 1 ] || [ "${#wasm_candidates[@]}" -ne 1 ]; then
@@ -153,7 +155,7 @@ jobs:
           wasm_file="${wasm_candidates[0]}"
           test -s "$js_file"
           test -s "$wasm_file"
-          if [ "${js_file%.js}" != "${wasm_file%.wasm}" ]; then
+          if [ "${js_file%.wrapped.js}" != "${wasm_file%.wasm}" ]; then
             echo "JavaScript and WASM artifact stems do not match" >&2
             exit 1
           fi
