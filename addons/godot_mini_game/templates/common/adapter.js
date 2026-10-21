@@ -27,11 +27,15 @@ const _mainCanvas = _global.canvas || _api.createCanvas();
 const _winInfo = PlatformRuntime.getSystemInfo();
 // Mini-game window and touch APIs use logical pixels, while the WebGL backing
 // store must use physical pixels to stay sharp on high-DPI screens. TikTok's
-// native runtime is device-certified for this split; keep the established 1x
-// behavior on WeChat and Douyin until the same real-device gate is repeated.
+// native runtime is device-certified for this split; WeChat/Douyin now also
+// follow the host DPR (capped at MINGAME_MAX_DPR) so the UI doesn't blur when
+// a low-res backing buffer is stretched onto a high-DPI screen.
+// 真机回归提示：若微信/抖音端出现渲染异常或性能问题，
+// 把 MINGAME_MAX_DPR 调回 1 即可恢复旧版 1x 行为。
+const MINGAME_MAX_DPR = 2;
 const _reportedDpr = Number(_winInfo.pixelRatio ?? _winInfo.devicePixelRatio ?? 1);
 const _hostDpr = Number.isFinite(_reportedDpr) && _reportedDpr > 0 ? _reportedDpr : 1;
-const _dpr = PlatformRuntime.platform === "tiktok" ? _hostDpr : 1;
+const _dpr = Math.min(_hostDpr, MINGAME_MAX_DPR);
 let _viewportWidth = Number(_winInfo.windowWidth || _winInfo.screenWidth || _mainCanvas.width || 1);
 let _viewportHeight = Number(_winInfo.windowHeight || _winInfo.screenHeight || _mainCanvas.height || 1);
 
