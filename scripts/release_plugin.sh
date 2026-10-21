@@ -132,17 +132,10 @@ while read -r _ref name; do
     fi
 done <<<"$REMOTE_TAGS"
 
-expected_iteration=$((highest_mod_iteration + 1))
-if [ "$ITERATION" != "$expected_iteration" ]; then
-    echo "Iteration mismatch for Godot ${GODOT_TAG}:" >&2
-    echo "  tag:      $TAG" >&2
-    echo "  expected: mod.${expected_iteration}" >&2
-    echo "  existing: mod.${highest_mod_iteration}" >&2
-    echo "The mod iteration increments on every release and resets on a Godot upgrade." >&2
-    exit 1
-fi
-
 if [ -n "$ENGINE_NAME" ]; then
+    # An engine release is a new cut on an already published mod tag, so `<N>`
+    # names that existing tag instead of the next mod iteration. Only `<M>`
+    # has to be the next cut for this baseline (docs/SLIM_GODOT_ENGINE.md 3.2).
     if ! git ls-remote --exit-code --tags origin "refs/tags/v${GODOT_TAG}.mod.${ITERATION}" >/dev/null 2>&1; then
         echo "Base mod tag v${GODOT_TAG}.mod.${ITERATION} does not exist on origin." >&2
         echo "An engine release must build on an already published mod tag." >&2
@@ -155,6 +148,16 @@ if [ -n "$ENGINE_NAME" ]; then
         echo "  expected: -engine.${ENGINE_NAME}.${expected_engine_iteration}" >&2
         echo "  existing: -engine.${ENGINE_NAME}.${highest_engine_iteration}" >&2
         echo "The engine iteration increments on every cut and resets on a new mod baseline." >&2
+        exit 1
+    fi
+else
+    expected_iteration=$((highest_mod_iteration + 1))
+    if [ "$ITERATION" != "$expected_iteration" ]; then
+        echo "Iteration mismatch for Godot ${GODOT_TAG}:" >&2
+        echo "  tag:      $TAG" >&2
+        echo "  expected: mod.${expected_iteration}" >&2
+        echo "  existing: mod.${highest_mod_iteration}" >&2
+        echo "The mod iteration increments on every release and resets on a Godot upgrade." >&2
         exit 1
     fi
 fi

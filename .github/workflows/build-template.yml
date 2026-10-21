@@ -45,6 +45,8 @@ on:
       - "website/app/site-data.generated.ts"
       - "README.md"
       - "README_zh.md"
+      - "scripts/release_plugin.sh"
+      - "test/**"
 
 jobs:
   build:

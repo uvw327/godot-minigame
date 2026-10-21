@@ -341,6 +341,26 @@ assert.ok(!releaseScript.includes("--clobber"), "published release assets must b
 assert.ok(!releaseScript.includes("gh release upload"), "the tag workflow must be the only release publisher");
 assert.ok(releaseScript.includes('git rev-parse --verify "refs/tags/$TAG"'));
 assert.ok(releaseScript.includes("git ls-remote --tags origin"));
+// An engine tag names an already published mod tag in its `<N>` slot, so the
+// "next mod iteration" rule must only apply to plain mod releases.
+{
+  const engineBranchStart = releaseScript.indexOf('if [ -n "$ENGINE_NAME" ]; then');
+  const modIterationCheck = releaseScript.indexOf("expected_iteration=$((highest_mod_iteration + 1))");
+  const engineIterationCheck = releaseScript.indexOf("expected_engine_iteration=$((highest_engine_iteration + 1))");
+  assert.ok(engineBranchStart >= 0, "the release script must special-case engine tags");
+  assert.ok(
+    engineIterationCheck > engineBranchStart,
+    "an engine release must still require the next engine cut",
+  );
+  assert.ok(
+    modIterationCheck > engineIterationCheck,
+    "the next-mod-iteration rule must sit in the mod-only branch, after the engine branch",
+  );
+  assert.ok(
+    releaseScript.includes('if ! git ls-remote --exit-code --tags origin "refs/tags/v${GODOT_TAG}.mod.${ITERATION}"'),
+    "an engine release must verify its base mod tag exists",
+  );
+}
 assert.ok(
   releaseScript.includes("validate_release_tag.sh"),
   "release script must validate the tag against the documented version scheme",
