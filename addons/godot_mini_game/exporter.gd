@@ -1812,9 +1812,10 @@ func _patch_godot_js(path: String, platform: String = "wechat") -> Error:
 		)
 		modified = true
 
-	# TikTok's native package scan forbids real eval calls. Certified templates
-	# built with javascript_eval=no need no rewrite; older exact templates are
-	# converted to an explicit unsupported bridge without leaving an eval( token.
+	# TikTok's native package scan forbids real eval calls. Bridge-enabled
+	# certified templates (javascript_eval=yes) are converted to an explicit
+	# unsupported bridge without leaving an eval( token; eval-free bundles that
+	# predate the flag need no rewrite.
 	if bool(PLATFORM_CONTRACTS[platform].forbids_javascript_eval):
 		if content.contains("eval("):
 			var eval_start := content.find("function _godot_js_eval(")

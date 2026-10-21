@@ -8,13 +8,13 @@ set -euo pipefail
 #
 # Optional environment variables:
 #   GODOT_MINIGAME_BUILD_DIR  Persistent compiler/source cache.
-#   TEMPLATE_REVISION         Bundle revision (default: 2).
+#   TEMPLATE_REVISION         Bundle revision (default: 3).
 
 export TZ=UTC
 
 GODOT_TAG="${1:-4.7.2-stable}"
 EMSDK_VERSION="${2:-4.0.11}"
-TEMPLATE_REVISION="${TEMPLATE_REVISION:-2}"
+TEMPLATE_REVISION="${TEMPLATE_REVISION:-3}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 SUPPORT_MATRIX="${PROJECT_DIR}/support-matrix.json"
@@ -120,6 +120,12 @@ if [ "$CHANGED_FILES" != "$EXPECTED_SOURCE_CHANGE" ]; then
     exit 1
 fi
 
+# javascript_eval=yes is mandatory. In Godot 4.7 the flag also gates
+# `js/libs/library_godot_javascript_singleton.js` (GodotJSWrapper), so
+# disabling it compiles JavaScriptBridge out entirely and
+# `JavaScriptBridge.get_interface()` silently returns null. TikTok, which
+# forbids eval, is handled at export time by exporter.gd, which rewrites
+# `_godot_js_eval` into a disabled stub.
 (
     cd "$SOURCE_DIR"
     scons platform=web target=template_release \
@@ -128,7 +134,7 @@ fi
         wasm_simd=no \
         threads=no \
         dlink_enabled=no \
-        javascript_eval=no \
+        javascript_eval=yes \
         module_webrtc_enabled=no \
         module_webxr_enabled=no \
         module_openxr_enabled=no \
@@ -164,6 +170,11 @@ if [ "${JS_FILE%.wrapped.js}" != "${WASM_FILE%.wasm}" ]; then
     echo "  $WASM_FILE" >&2
     exit 1
 fi
+
+# Fail before packaging when a rebuilt engine no longer matches the exact
+# strings exporter.gd rewrites in `_patch_godot_js()` (including the TikTok
+# eval strip), instead of shipping a template that cannot be exported.
+node "${SCRIPT_DIR}/locate_godot_js_anchors.mjs" "$JS_FILE"
 
 PACKAGE_DIR="$(mktemp -d "${BUILD_ROOT}/template-package.XXXXXX")"
 cp "$JS_FILE" "${PACKAGE_DIR}/godot.js"
@@ -213,7 +224,12 @@ jq -n \
       target: "release",
       revision: $revision,
       bridgeAbi: $bridge_abi,
-      features: {simd: false, threads: false, wasmExceptions: false},
+      features: {
+        simd: false,
+        threads: false,
+        wasmExceptions: false,
+        javascriptEval: true
+      },
       artifacts: {
         "godot.js": {sha256: $js_sha},
         "godot.wasm.br": {sha256: $wasm_sha}

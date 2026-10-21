@@ -153,10 +153,14 @@ for (const requiredFlag of [
   "wasm_simd=no",
   "threads=no",
   "dlink_enabled=no",
-  "javascript_eval=no",
+  "javascript_eval=yes",
 ]) {
   assert.ok(buildWorkflow.includes(requiredFlag), `template build must include ${requiredFlag}`);
 }
+assert.ok(
+  !buildWorkflow.includes("javascript_eval=no"),
+  "the bridge-hostile javascript_eval=no flag must never return",
+);
 assert.ok(!buildWorkflow.includes("use_exceptions=yes"), "unsupported pseudo-profile flags must not return");
 assert.ok(
   read("scripts/verify_wasm_template.sh").includes("wasm-validate --disable-simd"),
@@ -186,8 +190,16 @@ assert.ok(buildWorkflow.includes("pip install scons==4.9.1"));
 assert.ok(!buildWorkflow.includes("head -1"), "CI must reject ambiguous stale build artifacts");
 assert.match(
   buildWorkflow,
-  /template_revision:[\s\S]*?default: "2"/,
-  "eval-free CI templates must default to a new immutable revision",
+  /template_revision:[\s\S]*?default: "3"/,
+  "bridge-enabled CI templates must default to a new immutable revision",
+);
+assert.ok(
+  buildWorkflow.includes("scripts/locate_godot_js_anchors.mjs"),
+  "the engine build must audit exporter patch anchors before publishing",
+);
+assert.ok(
+  buildWorkflow.includes('"engine/**"'),
+  "pushing an engine/** branch must be able to request an engine rebuild",
 );
 
 const smokeWorkflow = read(".github/workflows/smoke-test-export.yml");
@@ -252,15 +264,19 @@ assert.ok(releaseScript.includes(".pluginVersion"), "release script must validat
 
 const templateBuildScript = read("scripts/build_wasm_template.sh");
 assert.ok(
-  templateBuildScript.includes("javascript_eval=no"),
-  "future local template builds must disable JavaScript eval",
+  templateBuildScript.includes("javascript_eval=yes"),
+  "local template builds must keep the JavaScript bridge linked",
 );
-assert.ok(!templateBuildScript.includes("javascript_eval=yes"));
+assert.ok(!templateBuildScript.includes("javascript_eval=no"));
 assert.ok(
-  templateBuildScript.includes('TEMPLATE_REVISION="${TEMPLATE_REVISION:-2}"'),
-  "eval-free local templates must default to revision 2",
+  templateBuildScript.includes('TEMPLATE_REVISION="${TEMPLATE_REVISION:-3}"'),
+  "bridge-enabled local templates must default to revision 3",
 );
-assert.ok(templateBuildScript.includes("Bundle revision (default: 2)"));
+assert.ok(templateBuildScript.includes("Bundle revision (default: 3)"));
+assert.ok(
+  templateBuildScript.includes("locate_godot_js_anchors.mjs"),
+  "local template builds must audit exporter patch anchors before packaging",
+);
 
 const releaseWorkflow = read(".github/workflows/release-plugin.yml");
 assert.ok(releaseWorkflow.includes("GODOT_COPYRIGHT.txt"));
@@ -292,6 +308,9 @@ for (const requiredContract of [
   ".emscriptenVersion",
   ".revision",
   "GODOT_COPYRIGHT.txt",
+  "GodotJSWrapper",
+  "godot_js_wrapper_interface_get",
+  "javascriptEval",
 ]) {
   assert.ok(verifier.includes(requiredContract), `shared verifier must enforce ${requiredContract}`);
 }

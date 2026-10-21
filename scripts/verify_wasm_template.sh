@@ -75,6 +75,7 @@ jq -e \
       (.features.simd == false) and
       (.features.threads == false) and
       (.features.wasmExceptions == false) and
+      (.features.javascriptEval == true) and
       (.artifacts["godot.js"].sha256 | type == "string" and test("^[0-9a-fA-F]{64}$")) and
       (.artifacts["godot.wasm.br"].sha256 | type == "string" and test("^[0-9a-fA-F]{64}$"))
     ' "${PACKAGE_DIR}/template.json" >/dev/null
@@ -107,9 +108,28 @@ for artifact in godot.js godot.wasm.br; do
 done
 
 node --check "${PACKAGE_DIR}/godot.js"
+
+# The engine MUST carry the JavaScriptBridge implementation. In Godot 4.7 a
+# build made with `javascript_eval=no` silently drops
+# `js/libs/library_godot_javascript_singleton.js`, so `GodotJSWrapper` and its
+# `godot_js_wrapper_*` wasm imports disappear and
+# `JavaScriptBridge.get_interface()` can never find a registered interface.
+if ! grep -q "GodotJSWrapper" "${PACKAGE_DIR}/godot.js"; then
+    echo "godot.js is missing GodotJSWrapper; rebuild the template with javascript_eval=yes" >&2
+    exit 1
+fi
+if ! grep -q "function _godot_js_eval(" "${PACKAGE_DIR}/godot.js"; then
+    echo "godot.js is missing the _godot_js_eval anchor; the TikTok eval strip cannot run" >&2
+    exit 1
+fi
+
 brotli --decompress --force --output="${TEMP_DIR}/godot.wasm" "${PACKAGE_DIR}/godot.wasm.br"
 if [ "$(xxd -p -l 4 "${TEMP_DIR}/godot.wasm")" != "0061736d" ]; then
     echo "Decompressed artifact is not a WebAssembly module" >&2
+    exit 1
+fi
+if ! grep -aq "godot_js_wrapper_interface_get" "${TEMP_DIR}/godot.wasm"; then
+    echo "godot.wasm has no godot_js_wrapper_interface_get import; JavaScriptBridge is not linked" >&2
     exit 1
 fi
 # WABT disables threads and exception handling by default. Explicitly disable

@@ -106,6 +106,18 @@ const ANCHORS = [
       "Engine.prototype['copyFSToAdapter']",
     ],
   },
+  {
+    // exporter.gd rewrites the eval implementation for TikTok. The pre-patch
+    // function and the post-patch marker both satisfy the anchor, so auditing
+    // an already-patched file still reports OK.
+    name: "TikTok eval bridge strip",
+    variable: "_eval_old / _eval_new",
+    needles: [
+      "function _godot_js_eval(",
+      "godot_js_eval:_godot_js_eval",
+      "godot_js_eval:_godot_js_disabled",
+    ],
+  },
 ];
 
 function context(index, needleLength) {

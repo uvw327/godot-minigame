@@ -29,9 +29,18 @@ Either trigger the **Build Mini-Game WASM Template** GitHub Actions workflow wit
 
 This installs the exact Emscripten SDK, checks out the exact Godot tag, forces
 `SUPPORT_LONGJMP=emscripten` (mini-game hosts have no WASM exception support),
-builds with `wasm_simd=no threads=no dlink_enabled=no javascript_eval=no`, and
+builds with `wasm_simd=no threads=no dlink_enabled=no javascript_eval=yes`, and
 validates the result with `scripts/verify_wasm_template.sh`. The output is a
 `godot_minigame_template_4.7.2-stable_emsdk-4.0.11_2d-full_release_abi-1_r<N>.zip`.
+
+> `javascript_eval=yes` is mandatory. In Godot 4.7 the flag also gates
+> `js/libs/library_godot_javascript_singleton.js` (`GodotJSWrapper`), so a
+> `javascript_eval=no` build has no `javascript_bridge_singleton` JS side and
+> `JavaScriptBridge.get_interface()` silently returns `null`. TikTok, which
+> forbids `eval`, is handled at export time by `exporter.gd`, which rewrites
+> `_godot_js_eval` into a disabled stub. `scripts/verify_wasm_template.sh`
+> hard-fails a bundle that lacks `GodotJSWrapper` or the
+> `godot_js_wrapper_interface_get` import.
 
 Local prerequisites: `emcc`, `scons`, `brotli`, `jq`, `node`, `wabt`
 (`wasm-validate`), `zip`, `python3`.
@@ -69,7 +78,7 @@ the `Engine.prototype['copyToFS']` export anchor.
 
 ```bash
 ./scripts/install_engine_template.sh \
-  build_wasm/output/4.7.2-stable/emsdk-4.0.11/2d_full/release/abi-1/r2/<bundle>.zip
+  build_wasm/output/4.7.2-stable/emsdk-4.0.11/2d_full/release/abi-1/r3/<bundle>.zip
 ```
 
 The installer runs the shared verifier, copies `godot.js`, `godot.wasm.br`,
@@ -87,7 +96,7 @@ first):
 
 | File | Old → new |
 |---|---|
-| `README.md`, `README_zh.md` | badge `Godot-4.6.1` → `Godot-4.7.2`; table `4.6.1.stable` → `4.7.2.stable`; `14d19694e0c8` → `ed1daf0bf001`; `4.0.3` → `4.0.11`; `revision \`1\`` → `revision \`2\`` (must equal `support-matrix.json` `templateRevision`) |
+| `README.md`, `README_zh.md` | badge `Godot-4.6.1` → `Godot-4.7.2`; table `4.6.1.stable` → `4.7.2.stable`; `14d19694e0c8` → `ed1daf0bf001`; `4.0.3` → `4.0.11`; `revision \`2\`` → `revision \`3\`` (must equal `support-matrix.json` `templateRevision`) |
 | `docs/USAGE.md`, `docs/USAGE_zh.md` | `4.6.1` → `4.7.2`; `4.6.1-stable` → `4.7.2-stable`; `4.0.3` → `4.0.11` |
 | `docs/ARCHITECTURE.md` | `4.6.1.stable` → `4.7.2.stable`; full commit; `emsdk-4.0.3` → `emsdk-4.0.11`; prose examples |
 | `addons/godot_mini_game/THIRD_PARTY_NOTICES.md` | `Godot 4.6.1-stable` → `Godot 4.7.2-stable` |
@@ -103,8 +112,9 @@ Then review `git diff` for the badge, table rows, short commit, Emscripten
 version, and the `revision` number; adjust any sentence that reads oddly (for
 example the `4.6` / `4.6.1` version-normalization examples in
 `docs/ARCHITECTURE.md`). The local build script and the CI workflow both default
-to `TEMPLATE_REVISION=2`, so a rebrand like this expects `revision 2` in the
-READMEs; keep it equal to `support-matrix.json` `templateRevision`.
+to `TEMPLATE_REVISION=3`, so the current bridge-enabled template expects
+`revision 3` in the READMEs; keep it equal to `support-matrix.json`
+`templateRevision`.
 
 ## 5. Verify
 
