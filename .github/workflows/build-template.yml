@@ -40,6 +40,7 @@ on:
     # Those files must not trigger another rebuild of the same engine.
     paths-ignore:
       - "addons/godot_mini_game/engine/**"
+      - "addons/godot_mini_game/GODOT_COPYRIGHT.txt"
       - "support-matrix.json"
       - "website/app/site-data.generated.ts"
       - "README.md"
@@ -265,9 +266,12 @@ jobs:
           set -euo pipefail
           revision="$(jq -er '.certified[] | select(.template.source == "bundled") | .templateRevision' support-matrix.json)"
           profile="$(jq -er '.certified[] | select(.template.source == "bundled") | .profile' support-matrix.json)"
-          sed -i -E 's/revision `[0-9]+`/revision `'"${revision}"'`/g' README.md README_zh.md
-          sed -i -E 's/^(\| Build \| )`[^`]+`/\1`'"${profile}"`/' README.md
-          sed -i -E 's/^(\| 构建 \| )`[^`]+`/\1`'"${profile}"`/' README_zh.md
+          # Keep every backtick inside a quoted string. An unquoted one opens a
+          # command substitution and makes the whole step fail to parse.
+          bt='`'
+          sed -i -E "s/revision ${bt}[0-9]+${bt}/revision ${bt}${revision}${bt}/g" README.md README_zh.md
+          sed -i -E "s/^(\| Build \| )${bt}[^${bt}]+${bt}/\1${bt}${profile}${bt}/" README.md
+          sed -i -E "s/^(\| 构建 \| )${bt}[^${bt}]+${bt}/\1${bt}${profile}${bt}/" README_zh.md
 
       - name: Commit and push the certified engine
         run: |
