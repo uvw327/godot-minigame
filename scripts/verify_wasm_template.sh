@@ -60,7 +60,7 @@ for required in template.json version.txt godot.js godot.wasm.br GODOT_COPYRIGHT
     fi
 done
 
-jq -e \
+if ! jq -e \
     --argjson expected_schema "$EXPECTED_TEMPLATE_SCHEMA" \
     --argjson expected_bridge_abi "$EXPECTED_BRIDGE_ABI" \
     '
@@ -78,7 +78,11 @@ jq -e \
       (.features.javascriptEval == true) and
       (.artifacts["godot.js"].sha256 | type == "string" and test("^[0-9a-fA-F]{64}$")) and
       (.artifacts["godot.wasm.br"].sha256 | type == "string" and test("^[0-9a-fA-F]{64}$"))
-    ' "${PACKAGE_DIR}/template.json" >/dev/null
+    ' "${PACKAGE_DIR}/template.json" >/dev/null; then
+    echo "::error::template.json failed the manifest contract" >&2
+    jq . "${PACKAGE_DIR}/template.json" >&2 || true
+    exit 1
+fi
 
 MANIFEST_VERSION="$(jq -r '.godot.version' "${PACKAGE_DIR}/template.json")"
 FILE_VERSION="$(
@@ -107,7 +111,10 @@ for artifact in godot.js godot.wasm.br; do
     fi
 done
 
-node --check "${PACKAGE_DIR}/godot.js"
+if ! node --check "${PACKAGE_DIR}/godot.js" 2>"${TEMP_DIR}/node-check.log"; then
+    echo "::error::godot.js failed node --check: $(tr '\n' ' ' < "${TEMP_DIR}/node-check.log" | head -c 500)" >&2
+    exit 1
+fi
 
 # The engine MUST carry the JavaScriptBridge implementation. In Godot 4.7 a
 # build made with `javascript_eval=no` silently drops
@@ -115,11 +122,15 @@ node --check "${PACKAGE_DIR}/godot.js"
 # `godot_js_wrapper_*` wasm imports disappear and
 # `JavaScriptBridge.get_interface()` can never find a registered interface.
 if ! grep -q "GodotJSWrapper" "${PACKAGE_DIR}/godot.js"; then
-    echo "godot.js is missing GodotJSWrapper; rebuild the template with javascript_eval=yes" >&2
+    echo "::error::godot.js is missing GodotJSWrapper; rebuild the template with javascript_eval=yes" >&2
     exit 1
 fi
-if ! grep -q "function _godot_js_eval(" "${PACKAGE_DIR}/godot.js"; then
-    echo "godot.js is missing the _godot_js_eval anchor; the TikTok eval strip cannot run" >&2
+# The eval implementation is injected by Emscripten only when the engine carries
+# eval( at all, and its definition syntax varies between Emscripten releases.
+# Anchor on the stable symbol name instead of the definition form.
+if grep -q "eval(" "${PACKAGE_DIR}/godot.js" \
+    && ! grep -q "_godot_js_eval" "${PACKAGE_DIR}/godot.js"; then
+    echo "::error::godot.js contains eval( but no _godot_js_eval implementation; the TikTok eval strip cannot run" >&2
     exit 1
 fi
 
@@ -129,11 +140,14 @@ if [ "$(xxd -p -l 4 "${TEMP_DIR}/godot.wasm")" != "0061736d" ]; then
     exit 1
 fi
 if ! grep -aq "godot_js_wrapper_interface_get" "${TEMP_DIR}/godot.wasm"; then
-    echo "godot.wasm has no godot_js_wrapper_interface_get import; JavaScriptBridge is not linked" >&2
+    echo "::error::godot.wasm has no godot_js_wrapper_interface_get import; JavaScriptBridge is not linked" >&2
     exit 1
 fi
 # WABT disables threads and exception handling by default. Explicitly disable
 # SIMD so the complete mini-game feature contract is enforced.
-wasm-validate --disable-simd "${TEMP_DIR}/godot.wasm"
+if ! wasm-validate --disable-simd "${TEMP_DIR}/godot.wasm" 2>"${TEMP_DIR}/wasm-validate.log"; then
+    echo "::error::wasm-validate rejected godot.wasm: $(tr '\n' ' ' < "${TEMP_DIR}/wasm-validate.log" | head -c 500)" >&2
+    exit 1
+fi
 
 echo "Template bundle is valid: Godot $MANIFEST_VERSION, bridge ABI $EXPECTED_BRIDGE_ABI"

@@ -107,16 +107,14 @@ const ANCHORS = [
     ],
   },
   {
-    // exporter.gd rewrites the eval implementation for TikTok. The pre-patch
-    // function and the post-patch marker both satisfy the anchor, so auditing
-    // an already-patched file still reports OK.
+    // exporter.gd rewrites the eval implementation for TikTok. The eval code is
+    // injected only when the engine carries eval( at all, and its definition
+    // syntax varies between Emscripten releases, so this anchor is audited only
+    // for eval-bearing engines and accepts any stable symbol form.
     name: "TikTok eval bridge strip",
     variable: "_eval_old / _eval_new",
-    needles: [
-      "function _godot_js_eval(",
-      "godot_js_eval:_godot_js_eval",
-      "godot_js_eval:_godot_js_disabled",
-    ],
+    onlyIfPresent: "eval(",
+    needles: ["_godot_js_eval", "godot_js_eval", "_godot_js_disabled"],
   },
 ];
 
@@ -128,6 +126,10 @@ function context(index, needleLength) {
 
 let missing = 0;
 for (const anchor of ANCHORS) {
+  if (anchor.onlyIfPresent && !source.includes(anchor.onlyIfPresent)) {
+    console.log(`SKIP     ${anchor.name} (no ${anchor.onlyIfPresent})`);
+    continue;
+  }
   let hit = null;
   for (const needle of anchor.needles) {
     const index = source.indexOf(needle);

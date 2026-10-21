@@ -135,7 +135,7 @@ func _init() -> void:
 	# A bridge-enabled certified engine (javascript_eval=yes) carries the eval
 	# bridge; an older eval-free bundle (javascript_eval=no) does not. Keep both
 	# shapes covered so the suite stays valid across template revisions.
-	var engine_carries_eval := _read(engine_source).contains("_godot_js_eval")
+	var engine_carries_eval := _read(engine_source).contains("eval(")
 
 	var tiktok_engine := _root.path_join("patched-tiktok.js")
 	_copy(engine_source, tiktok_engine)
