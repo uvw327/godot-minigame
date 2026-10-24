@@ -36,3 +36,5 @@ Thumbs.db
 
 # rebased config
 .idea/
+
+.workbuddy/
