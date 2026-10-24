@@ -91,6 +91,8 @@ Godot 编辑器 → **Project > Project Settings > Plugins** → 勾选 **Godot 
 
 Dock 位于编辑器底部，依次包含以下字段：
 
+> **高度可自由缩放**：拖动 Dock 边缘即可调整高度，最小约 80px；内容超出高度时在面板内滚动显示，日志区会随高度拉伸。
+
 ### 平台 Platform
 
 | 选项 | 说明 |

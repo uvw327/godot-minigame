@@ -3,111 +3,129 @@
 [ext_resource type="Script" path="res://addons/godot_mini_game/export_dock.gd" id="1"]
 
 [node name="MiniGameExport" type="VBoxContainer"]
-custom_minimum_size = Vector2(300, 0)
+custom_minimum_size = Vector2(300, 80)
 script = ExtResource("1")
 
-[node name="Title" type="Label" parent="."]
+; 内容包在 ScrollContainer 里，Dock 的最小高度不再由子控件累加决定。
+; ScrollContainer 默认 AUTO 滚动模式下最小尺寸只取面板边距（Godot 4.7
+; scroll_container.cpp: _get_minimum_size 不取子节点尺寸），因此这里再用
+; custom_minimum_size 把下限固定为 300x80： Dock 可缩到 80px 高，超出部分
+; 由滚动条承接；同时根 VBox 的计算最小尺寸也是 (300, 80)，无论停靠槽读
+; get_minimum_size() 还是 get_combined_minimum_size() 都得到同样的下限。
+[node name="DockScroll" type="ScrollContainer" parent="."]
+custom_minimum_size = Vector2(300, 80)
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Content" type="VBoxContainer" parent="DockScroll"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Title" type="Label" parent="DockScroll/Content"]
 text = "小游戏导出"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 18
 
-[node name="Sep0" type="HSeparator" parent="."]
+[node name="Sep0" type="HSeparator" parent="DockScroll/Content"]
 
-[node name="PlatformLabel" type="Label" parent="."]
+[node name="PlatformLabel" type="Label" parent="DockScroll/Content"]
 text = "目标平台"
 
-[node name="PlatformOption" type="OptionButton" parent="."]
+[node name="PlatformOption" type="OptionButton" parent="DockScroll/Content"]
 
-[node name="AppIdLabel" type="Label" parent="."]
+[node name="AppIdLabel" type="Label" parent="DockScroll/Content"]
 text = "App ID / Client Key"
 
-[node name="AppIdInput" type="LineEdit" parent="."]
+[node name="AppIdInput" type="LineEdit" parent="DockScroll/Content"]
 placeholder_text = "填写项目 App ID；TikTok Client Key 还需 ttmg init"
 
-[node name="OrientationLabel" type="Label" parent="."]
+[node name="OrientationLabel" type="Label" parent="DockScroll/Content"]
 text = "屏幕方向"
 
-[node name="OrientationOption" type="OptionButton" parent="."]
+[node name="OrientationOption" type="OptionButton" parent="DockScroll/Content"]
 
-[node name="PresetLabel" type="Label" parent="."]
+[node name="PresetLabel" type="Label" parent="DockScroll/Content"]
 text = "Web 导出预设"
 
-[node name="PresetOption" type="OptionButton" parent="."]
+[node name="PresetOption" type="OptionButton" parent="DockScroll/Content"]
 
-[node name="Sep1" type="HSeparator" parent="."]
+[node name="Sep1" type="HSeparator" parent="DockScroll/Content"]
 
-[node name="OutputLabel" type="Label" parent="."]
+[node name="OutputLabel" type="Label" parent="DockScroll/Content"]
 text = "输出目录"
 
-[node name="OutputRow" type="HBoxContainer" parent="."]
+[node name="OutputRow" type="HBoxContainer" parent="DockScroll/Content"]
 
-[node name="OutputPath" type="LineEdit" parent="OutputRow"]
+[node name="OutputPath" type="LineEdit" parent="DockScroll/Content/OutputRow"]
 size_flags_horizontal = 3
 placeholder_text = "选择导出目录"
 
-[node name="BrowseBtn" type="Button" parent="OutputRow"]
+[node name="BrowseBtn" type="Button" parent="DockScroll/Content/OutputRow"]
 text = "..."
 
-[node name="Sep2" type="HSeparator" parent="."]
+[node name="Sep2" type="HSeparator" parent="DockScroll/Content"]
 
-[node name="TemplateLabel" type="Label" parent="."]
+[node name="TemplateLabel" type="Label" parent="DockScroll/Content"]
 text = "引擎模板"
 
-[node name="TemplateStatus" type="RichTextLabel" parent="."]
+[node name="TemplateStatus" type="RichTextLabel" parent="DockScroll/Content"]
 custom_minimum_size = Vector2(0, 40)
 bbcode_enabled = true
 fit_content = true
 scroll_active = false
 
-[node name="TemplateRow" type="HBoxContainer" parent="."]
+[node name="TemplateRow" type="HBoxContainer" parent="DockScroll/Content"]
 
-[node name="ImportBtn" type="Button" parent="TemplateRow"]
+[node name="ImportBtn" type="Button" parent="DockScroll/Content/TemplateRow"]
 size_flags_horizontal = 3
 text = "导入引擎模板..."
 
-[node name="RefreshBtn" type="Button" parent="TemplateRow"]
+[node name="RefreshBtn" type="Button" parent="DockScroll/Content/TemplateRow"]
 text = "刷新"
 
-[node name="TemplateHint" type="Label" parent="."]
+[node name="TemplateHint" type="Label" parent="DockScroll/Content"]
 autowrap_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "需要与当前编辑器精确匹配的小游戏模板。可从本项目 Releases 下载，或自行编译。"
 
-[node name="Sep3" type="HSeparator" parent="."]
+[node name="Sep3" type="HSeparator" parent="DockScroll/Content"]
 
-[node name="ExportBtn" type="Button" parent="."]
+[node name="ExportBtn" type="Button" parent="DockScroll/Content"]
 custom_minimum_size = Vector2(0, 40)
 text = "导出小游戏"
 
-[node name="CancelExportBtn" type="Button" parent="."]
+[node name="CancelExportBtn" type="Button" parent="DockScroll/Content"]
 visible = false
 disabled = true
 text = "取消导出"
 
-[node name="TimeoutRow" type="HBoxContainer" parent="."]
+[node name="TimeoutRow" type="HBoxContainer" parent="DockScroll/Content"]
 
-[node name="TimeoutLabel" type="Label" parent="TimeoutRow"]
+[node name="TimeoutLabel" type="Label" parent="DockScroll/Content/TimeoutRow"]
 text = "资源导出超时（秒）"
 
-[node name="TimeoutInput" type="SpinBox" parent="TimeoutRow"]
+[node name="TimeoutInput" type="SpinBox" parent="DockScroll/Content/TimeoutRow"]
 size_flags_horizontal = 3
 min_value = 1.0
 max_value = 86400.0
 value = 600.0
 tooltip_text = "Godot 资源打包子进程的最长等待时间；超时后停止本次导出。"
 
-[node name="StatusLabel" type="RichTextLabel" parent="."]
+; 日志区设为纵向 Expand：Dock 拉高时日志区吸收多余高度，拉低时保持
+; 120px 最小高度，其余内容走 DockScroll 的滚动条。
+[node name="StatusLabel" type="RichTextLabel" parent="DockScroll/Content"]
 custom_minimum_size = Vector2(0, 120)
+size_flags_vertical = 3
 bbcode_enabled = true
 scroll_following = true
 
-[node name="FolderDialog" type="FileDialog" parent="."]
+[node name="FolderDialog" type="FileDialog" parent="DockScroll/Content"]
 title = "选择输出目录"
 size = Vector2i(600, 400)
 access = 2
 file_mode = 2
 
-[node name="TemplateFileDialog" type="FileDialog" parent="."]
+[node name="TemplateFileDialog" type="FileDialog" parent="DockScroll/Content"]
 title = "选择引擎模板 ZIP"
 size = Vector2i(600, 400)
 access = 2

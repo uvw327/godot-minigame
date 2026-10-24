@@ -94,6 +94,8 @@ Godot editor → **Project > Project Settings > Plugins** → check **Godot Mini
 
 The dock sits at the bottom of the editor and contains:
 
+> **Freely resizable**: drag the dock edge to adjust the height; the minimum is about 80px and overflowing content scrolls inside the panel. The log area stretches with the dock height.
+
 ### Platform
 
 | Option | Notes |

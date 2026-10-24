@@ -22,21 +22,23 @@ const ORIENTATION_OPTIONS := [
 const LOG_MENU_COPY_ALL := 0
 const LOG_MENU_CLEAR := 1
 
-@onready var platform_option: OptionButton = $PlatformOption
-@onready var appid_input: LineEdit = $AppIdInput
-@onready var orientation_option: OptionButton = $OrientationOption
-@onready var preset_option: OptionButton = $PresetOption
-@onready var output_path: LineEdit = $OutputRow/OutputPath
-@onready var browse_btn: Button = $OutputRow/BrowseBtn
-@onready var export_btn: Button = $ExportBtn
-@onready var cancel_export_btn: Button = $CancelExportBtn
-@onready var timeout_input: SpinBox = $TimeoutRow/TimeoutInput
-@onready var status_label: RichTextLabel = $StatusLabel
-@onready var folder_dialog: FileDialog = $FolderDialog
-@onready var template_status: RichTextLabel = $TemplateStatus
-@onready var import_btn: Button = $TemplateRow/ImportBtn
-@onready var refresh_btn: Button = $TemplateRow/RefreshBtn
-@onready var template_file_dialog: FileDialog = $TemplateFileDialog
+## 所有控件都挂在 DockScroll/Content 下：Dock 的可缩放下限由根节点与
+## DockScroll 的 custom_minimum_size 决定，内容超长时在 ScrollContainer 里滚动。
+@onready var platform_option: OptionButton = $DockScroll/Content/PlatformOption
+@onready var appid_input: LineEdit = $DockScroll/Content/AppIdInput
+@onready var orientation_option: OptionButton = $DockScroll/Content/OrientationOption
+@onready var preset_option: OptionButton = $DockScroll/Content/PresetOption
+@onready var output_path: LineEdit = $DockScroll/Content/OutputRow/OutputPath
+@onready var browse_btn: Button = $DockScroll/Content/OutputRow/BrowseBtn
+@onready var export_btn: Button = $DockScroll/Content/ExportBtn
+@onready var cancel_export_btn: Button = $DockScroll/Content/CancelExportBtn
+@onready var timeout_input: SpinBox = $DockScroll/Content/TimeoutRow/TimeoutInput
+@onready var status_label: RichTextLabel = $DockScroll/Content/StatusLabel
+@onready var folder_dialog: FileDialog = $DockScroll/Content/FolderDialog
+@onready var template_status: RichTextLabel = $DockScroll/Content/TemplateStatus
+@onready var import_btn: Button = $DockScroll/Content/TemplateRow/ImportBtn
+@onready var refresh_btn: Button = $DockScroll/Content/TemplateRow/RefreshBtn
+@onready var template_file_dialog: FileDialog = $DockScroll/Content/TemplateFileDialog
 
 var _active_exporter: RefCounted
 ## 日志区域的右键菜单（全部复制 / 清空），在 _ready 中创建。
